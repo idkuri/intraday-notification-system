@@ -1,0 +1,77 @@
+[project]
+name = "assembled-intraday"
+version = "0.1.0"
+description = "Intraday notification system take-home"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.6",
+  "uvicorn[standard]==0.34.0",
+  "pydantic==2.10.4",
+  "sqlalchemy==2.0.36",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==8.3.4",
+  "httpx==0.28.1",
+  "ruff==0.8.6",
+  "mypy==1.14.0",
+]
+
+[project.scripts]
+dev = "gateway.cli:run_dev"
+seed-rules = "gateway.cli:run_seed_rules"
+stream-events = "gateway.cli:run_stream_events"
+lint = "gateway.cli:run_lint"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Editable install: put services/ + server root on sys.path via a venv .pth
+# so `lib`, `gateway`, and service packages resolve (no project-root *.egg-info).
+[tool.hatch.build]
+dev-mode-dirs = ["services", "."]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "lib",
+  "services/rules",
+  "services/evaluator",
+  "services/notifications",
+  "services/ingest",
+  "gateway",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["lib", "services", "gateway", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "N", "RUF001", "RUF002", "RUF003"]
+# UP007 prefers X | Y; we use Optional[X] for nullable annotations.
+# RUF001/002/003 catch ambiguous unicode (en/em dashes, fancy arrows) in code/docs.
+ignore = ["B008", "UP007"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["N802"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["lib", "rules", "evaluator", "notifications", "ingest", "gateway"]
+strict = true
+warn_unused_ignores = true
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+mypy_path = "services:."
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true

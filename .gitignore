@@ -1,0 +1,23 @@
+# Python
+server/.venv/
+server/**/__pycache__/
+server/.pytest_cache/
+server/.mypy_cache/
+server/.ruff_cache/
+server/*.egg-info/
+server/data/*.db
+*.pyc
+*.egg-info/
+
+# Node
+client/node_modules/
+client/dist/
+client/.env
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
