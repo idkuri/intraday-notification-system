@@ -1,0 +1,1 @@
+"""Intraday notification rule evaluator."""
