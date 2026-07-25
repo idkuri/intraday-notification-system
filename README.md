@@ -1,6 +1,19 @@
 # Intraday Notification System
 
-Assembled is a demo intraday notification system for contact-center operations. Agents and team leads configure alert rules over queue snapshots, agent state, and adherence events; the backend evaluates each event and notifies when a condition becomes true (not on every later poll) so alerts stay timely without spam. Product details, MVP scope, tradeoffs, and roadmap: [PRD.md](PRD.md). Layout: `server/` (FastAPI + evaluator) and `client/` (React + Vite).
+Intraday Notification System is a demo for contact-center operations. Agents and team leads configure alert rules over queue snapshots, agent state, and adherence events; the backend evaluates each event and notifies when a condition becomes true (not on every later poll) so alerts stay timely without spam. Product details, MVP scope, tradeoffs, and roadmap: [PRD.md](PRD.md). Layout: `server/` (FastAPI + evaluator) and `client/` (React + Vite).
+
+![Notifications inbox after replaying the sample morning as `lead_billing`](docs/inbox.png)
+
+## Review this repo in 10 minutes
+
+Start with the product surface above, then follow the evaluate path — that is where the interesting logic lives:
+
+1. **`server/services/evaluator/rule_engine.py`** — per-event orchestration: index candidates → run trigger matchers → become-true / adherence-window noise control → `NotificationCreate` payloads.
+2. **`server/services/evaluator/rule_index.py`** — which enabled rules can fire for this event (type + scope).
+3. **`server/services/evaluator/triggers/`** — one closed matcher per `TriggerType` (SLA, backlog, forecast-over-volume, adherence, state duration).
+4. **`server/tests/evaluator/`** — `test_triggers.py`, `test_rule_engine.py`, and `test_noise_control.py` encode the rising-edge and window-dedupe story.
+
+Skim [evaluator/README.md](server/services/evaluator/README.md) if you want the wiring diagram before diving into the files.
 
 ## Architecture
 

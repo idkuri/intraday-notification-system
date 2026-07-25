@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from gateway.container import AppContainer
 from lib.schemas.events import EventParser
 from tests.event_streamer.jsonl_replayer import JsonlReplayer
 from tests.event_streamer.streamer import EventStreamer
+
+from gateway.container import AppContainer
 
 FIXTURE_PATH = Path(__file__).resolve().parent.parent / "fixtures" / "sample_events.jsonl"
 

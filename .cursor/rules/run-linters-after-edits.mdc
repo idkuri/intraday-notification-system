@@ -1,0 +1,21 @@
+---
+description: Run the matching package linter after frontend or backend edits
+alwaysApply: true
+---
+
+# Run linters after edits
+
+After making code changes, run the linter for the side you touched before considering
+the work done. Fix any failures you introduced.
+
+| Side | Paths | Command (from that directory) |
+|------|-------|-------------------------------|
+| Frontend | `client/**` | `cd client && bun run lint` |
+| Backend | `server/**` | `cd server && uv run lint` |
+
+## Rules
+
+- If you edited both sides in one turn, run **both** commands.
+- Do not skip lint because the change was "small" or "just formatting".
+- If lint fails, fix the issues and re-run until clean.
+- README / docs-only edits do not require these linters.
