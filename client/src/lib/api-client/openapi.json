@@ -1,0 +1,1113 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Assembled Intraday",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "description": "Return a simple liveness probe.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules": {
+      "get": {
+        "tags": [
+          "rules"
+        ],
+        "summary": "List Rules",
+        "operationId": "list_rules_rules_get",
+        "parameters": [
+          {
+            "name": "X-Username",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Username"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RuleRead"
+                  },
+                  "title": "Response List Rules Rules Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "rules"
+        ],
+        "summary": "Create Rule",
+        "operationId": "create_rule_rules_post",
+        "parameters": [
+          {
+            "name": "X-Username",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Username"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/{rule_id}": {
+      "get": {
+        "tags": [
+          "rules"
+        ],
+        "summary": "Get Rule",
+        "operationId": "get_rule_rules__rule_id__get",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rule Id"
+            }
+          },
+          {
+            "name": "X-Username",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Username"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "rules"
+        ],
+        "summary": "Update Rule",
+        "operationId": "update_rule_rules__rule_id__patch",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rule Id"
+            }
+          },
+          {
+            "name": "X-Username",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Username"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "rules"
+        ],
+        "summary": "Delete Rule",
+        "operationId": "delete_rule_rules__rule_id__delete",
+        "parameters": [
+          {
+            "name": "rule_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rule Id"
+            }
+          },
+          {
+            "name": "X-Username",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Username"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "List Notifications",
+        "operationId": "list_notifications_notifications_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Notifications Notifications Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Clear All",
+        "operationId": "clear_all_notifications_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        }
+      }
+    },
+    "/events": {
+      "post": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Ingest Event",
+        "description": "Ingest a single domain event and return emitted notification IDs.",
+        "operationId": "ingest_event_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/QueueSnapshotEvent"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AgentStateChangeEvent"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AdherenceCheckEvent"
+                  }
+                ],
+                "title": "Event",
+                "discriminator": {
+                  "propertyName": "type",
+                  "mapping": {
+                    "queue_snapshot": "#/components/schemas/QueueSnapshotEvent",
+                    "agent_state_change": "#/components/schemas/AgentStateChangeEvent",
+                    "adherence_check": "#/components/schemas/AdherenceCheckEvent"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestEventResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdherenceCheckEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "adherence_check",
+            "title": "Type"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "queue_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queue Ids"
+          },
+          "scheduled_state": {
+            "type": "string",
+            "title": "Scheduled State"
+          },
+          "actual_state": {
+            "type": "string",
+            "title": "Actual State"
+          },
+          "in_violation": {
+            "type": "boolean",
+            "title": "In Violation"
+          },
+          "violation_started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Violation Started At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "ts",
+          "type",
+          "agent_id",
+          "queue_ids",
+          "scheduled_state",
+          "actual_state",
+          "in_violation"
+        ],
+        "title": "AdherenceCheckEvent"
+      },
+      "AgentState": {
+        "type": "string",
+        "enum": [
+          "available",
+          "on_call",
+          "on_break",
+          "in_meeting",
+          "offline"
+        ],
+        "title": "AgentState",
+        "description": "Workforce agent states used in events and state-duration rules."
+      },
+      "AgentStateChangeEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "agent_state_change",
+            "title": "Type"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "queue_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queue Ids"
+          },
+          "previous_state": {
+            "type": "string",
+            "title": "Previous State"
+          },
+          "previous_state_duration_sec": {
+            "type": "integer",
+            "title": "Previous State Duration Sec"
+          },
+          "new_state": {
+            "type": "string",
+            "title": "New State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "ts",
+          "type",
+          "agent_id",
+          "queue_ids",
+          "previous_state",
+          "previous_state_duration_sec",
+          "new_state"
+        ],
+        "title": "AgentStateChangeEvent"
+      },
+      "Audience": {
+        "type": "string",
+        "enum": [
+          "agent",
+          "team_lead"
+        ],
+        "title": "Audience",
+        "description": "Who a rule is intended for in the product UI (not used for routing)."
+      },
+      "ChannelType": {
+        "type": "string",
+        "enum": [
+          "console",
+          "inbox"
+        ],
+        "title": "ChannelType",
+        "description": "Delivery channels for a notification."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthResponse",
+        "description": "Liveness probe response."
+      },
+      "IngestEventResponse": {
+        "properties": {
+          "notifications_emitted": {
+            "type": "integer",
+            "title": "Notifications Emitted",
+            "description": "Count of notifications created"
+          },
+          "notification_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notification Ids",
+            "description": "IDs of created notification rows"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "notifications_emitted",
+          "notification_ids"
+        ],
+        "title": "IngestEventResponse",
+        "description": "Result of evaluating and delivering notifications for one ingested event.\n\nAttributes:\n    notifications_emitted: Number of notifications created for this event.\n    notification_ids: Primary keys of those notification rows, in creation order."
+      },
+      "NotificationRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "rule_id": {
+            "type": "string",
+            "title": "Rule Id"
+          },
+          "recipient_id": {
+            "type": "string",
+            "title": "Recipient Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "entity_key": {
+            "type": "string",
+            "title": "Entity Key"
+          },
+          "triggering_event_id": {
+            "type": "string",
+            "title": "Triggering Event Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "delivered_channels": {
+            "items": {
+              "$ref": "#/components/schemas/ChannelType"
+            },
+            "type": "array",
+            "title": "Delivered Channels"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "rule_id",
+          "recipient_id",
+          "title",
+          "body",
+          "severity",
+          "entity_key",
+          "triggering_event_id",
+          "ts",
+          "delivered_channels"
+        ],
+        "title": "NotificationRead",
+        "description": "Persisted inbox notification."
+      },
+      "QueueSnapshotEvent": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "ts": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ts"
+          },
+          "type": {
+            "type": "string",
+            "const": "queue_snapshot",
+            "title": "Type"
+          },
+          "queue_id": {
+            "type": "string",
+            "title": "Queue Id"
+          },
+          "tickets_waiting": {
+            "type": "integer",
+            "title": "Tickets Waiting"
+          },
+          "longest_wait_sec": {
+            "type": "integer",
+            "title": "Longest Wait Sec"
+          },
+          "sla_target_sec": {
+            "type": "integer",
+            "title": "Sla Target Sec"
+          },
+          "agents_available": {
+            "type": "integer",
+            "title": "Agents Available"
+          },
+          "agents_on_call": {
+            "type": "integer",
+            "title": "Agents On Call"
+          },
+          "volume_last_15m": {
+            "type": "integer",
+            "title": "Volume Last 15M"
+          },
+          "volume_forecast_next_15m": {
+            "type": "integer",
+            "title": "Volume Forecast Next 15M"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_id",
+          "ts",
+          "type",
+          "queue_id",
+          "tickets_waiting",
+          "longest_wait_sec",
+          "sla_target_sec",
+          "agents_available",
+          "agents_on_call",
+          "volume_last_15m",
+          "volume_forecast_next_15m"
+        ],
+        "title": "QueueSnapshotEvent"
+      },
+      "RuleCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "audience": {
+            "$ref": "#/components/schemas/Audience"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RuleScope"
+          },
+          "trigger_type": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "target_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity",
+            "default": "warning"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/ChannelType"
+            },
+            "type": "array",
+            "title": "Channels"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "audience",
+          "owner_id",
+          "scope",
+          "trigger_type"
+        ],
+        "title": "RuleCreate"
+      },
+      "RuleRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "audience": {
+            "$ref": "#/components/schemas/Audience"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RuleScope"
+          },
+          "trigger_type": {
+            "$ref": "#/components/schemas/TriggerType"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "target_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity",
+            "default": "warning"
+          },
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/ChannelType"
+            },
+            "type": "array",
+            "title": "Channels"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "created_by": {
+            "type": "string",
+            "title": "Created By"
+          },
+          "updated_by": {
+            "type": "string",
+            "title": "Updated By"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "audience",
+          "owner_id",
+          "scope",
+          "trigger_type",
+          "id",
+          "created_at",
+          "updated_at",
+          "created_by",
+          "updated_by"
+        ],
+        "title": "RuleRead"
+      },
+      "RuleScope": {
+        "properties": {
+          "agent_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Id"
+          },
+          "queue_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queue Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RuleScope"
+      },
+      "RuleUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "audience": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Audience"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RuleScope"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trigger_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TriggerType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          },
+          "target_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Severity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channels": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ChannelType"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channels"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RuleUpdate"
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "warning",
+          "critical"
+        ],
+        "title": "Severity",
+        "description": "Alert severity copied onto fired notifications."
+      },
+      "TriggerType": {
+        "type": "string",
+        "enum": [
+          "adherence_violation_duration",
+          "queue_sla_breached",
+          "queue_tickets_waiting",
+          "agent_state_duration"
+        ],
+        "title": "TriggerType",
+        "description": "Closed set of rule trigger kinds the evaluator can match."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
