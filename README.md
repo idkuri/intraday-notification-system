@@ -250,6 +250,36 @@ ORM models live under `server/lib/models/`.
 
 Tooling: **Cursor** (agent + planning).
 
-- **Used for:** scaffolding FastAPI/React structure, OpenAPI client wiring, draft trigger evaluators and form field config, parallel codebase exploration while refining scope.
-- **Not delegated:** product cuts (agents + leads only; closed triggers; no cooldown DSL), noise-control semantics (become-true + adherence window), and what stayed out of MVP.
-- **Verified by:** `uv run pytest` (triggers, noise control, rules CRUD, JSONL replay), `bun run lint` / typecheck, `bun test` (`parseRuleForm`), CI (`.github/workflows/ci.yml`), and manual seed → instant replay → inbox/console story beats.
+**Reached for AI**
+- Scaffolding FastAPI + React/MUI pages. Faster than hand-rolling empty routers and table CRUD.
+- OpenAPI client wiring and form-field codegen. Boilerplate I did not want to maintain twice by hand.
+- Draft trigger evaluators and test scaffolds. Good starting shape; I still rewrote the bits that matter.
+- Parallel exploration while cutting scope. Useful for finding files, not for deciding what ships.
+
+**Deliberately did not**
+- Product scope (agents + leads only, closed triggers, no cooldown DSL). Product call, not a codegen question.
+- Become-true semantics (notify on false→true, adherence window dedupe, state-duration as transitions). Noise control is the whole point of the MVP.
+- Data model (event union, rules/notifications, `notification_dedup` as cross-request memory). Early AI sketches wanted a flat cooldown gate; wrong for snapshot feeds.
+
+**Rejected / corrected AI output**
+- Flat / weird layout (`app/`, `packages/shared`, `gateway/application`). Forced routers + schemas + ORM + `server/`/`client/` + `lib/`.
+- Jinja2 HTML templates. Switched to React and OpenAPI-generated TS client.
+- TanStack Query early on. Parked it; used zustand + simple polling for the demo.
+- JSONL replay as a product "replay service". Moved under `tests/` as a harness only.
+- Seed-as-a-service. Made it a script so cold DB stays demo-ready without fake service weight.
+- Whole cooldown / gate naming zoo (`EdgeCooldownGate`, `RisingEdgeGate`, `GateLatch`, `EvalStateStore`). Dropped configurable cooldown; folded become-true + adherence window into `RuleEngine` + `notification_dedup`.
+- `audience` field and shared global rules. Cut audience; scoped CRUD by `created_by`, kept `owner_id` as recipient.
+- Building a forecasting model. Feed already has `volume_forecast_next_15m`; just consume it.
+- Wrong forecast polarity (agent drafted the inverse). Corrected to forecast vs recent at a user threshold (seed 130%).
+- Demo form noise (too many checkboxes / SLA target copy). Trimmed for the demo path.
+- Duplicated trigger field rules in Python and TS. One source in `trigger_field_config.py` + generated client flags.
+- Schema too strict for real JSONL (`previous_*`, forecast). Made fields `Optional` to match the feed.
+- Out of MVP on purpose: Kafka/Redis/websockets, real auth, rule DSL, customer-facing replayer.
+
+**How I verified**
+- 34 pytest cases (triggers, noise control, rules CRUD, JSONL replay), plus mypy + ruff.
+- Replayed `events.jsonl` through ingest and checked `[NOTIFY]` / inbox against the rising-edge story beats.
+- CI lint/test + OpenAPI / form-config sync checks once those landed.
+
+**Guardrails**
+- Committed `.cursor/rules/` (architect review before implement, parallel subagents only when independent, Python method-kind conventions). Evidence I run AI inside constraints I wrote, not unconstrained codegen.
