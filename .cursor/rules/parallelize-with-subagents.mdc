@@ -1,0 +1,48 @@
+---
+description: Spin up parallel subagents for multi-faceted requests
+alwaysApply: true
+---
+
+# Parallelize Independent Work with Subagents
+
+When a request has **multiple facets that don't depend on each other**, dispatch
+one `Task` subagent per facet in a **single message** (multiple tool calls in one
+batch) so they run concurrently. Do not work independent facets serially yourself.
+
+## When to parallelize
+
+A facet is parallelizable when it can proceed without the output of another
+facet. Common triggers:
+
+1. Edits across separate files/modules/repos with no shared contract change.
+2. Independent investigations or exploration of different areas of the codebase.
+3. A change plus its independent verification (e.g. tests in one area, lint in
+   another).
+4. Several similar-but-separate tasks (e.g. "fix these 4 routers").
+
+## When NOT to parallelize
+
+1. Facets are sequential — one's output feeds the next (design → implement → test
+   the same unit).
+2. Facets touch the same files/contract and would conflict.
+3. The whole task is small enough to finish faster directly (1–2 trivial steps).
+
+## How
+
+- Send a **single message with multiple `Task` tool calls** to launch them at once.
+- Give each subagent a self-contained prompt (it can't see this chat): goal,
+  context, exact files, and how to verify.
+- Route each subagent's `model` by complexity per
+  `model-routing-by-complexity.mdc` when that rule is present; otherwise use the
+  default model.
+- After they return, synthesize results and reconcile any overlap.
+
+```text
+# ✅ GOOD — request: "add the endpoint, fix the migration, and add tests"
+[one message]
+  Task(subagent_type="...", prompt="Add the publications endpoint ...")
+  Task(subagent_type="...", prompt="Write the corrective migration ...")
+  Task(subagent_type="...", prompt="Add tests for the router ...")
+
+# ❌ BAD — doing each one yourself, one after another, in the main thread
+```

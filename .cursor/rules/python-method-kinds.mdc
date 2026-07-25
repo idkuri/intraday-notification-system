@@ -1,0 +1,27 @@
+---
+description: When to use instance methods, classmethods, and module-level helpers in server Python
+globs: server/**/*.py
+alwaysApply: false
+---
+
+# Python method kinds (server/)
+
+| Kind | Use when | Examples here |
+|------|----------|----------------|
+| **Instance method** | Needs `self` state or mutates the instance | `RuleService.create_rule`, `RuleEngine.evaluate_event`, `RuleModel.to_schema`, `apply_update` |
+| **`@classmethod`** | Alternate constructor / factory that returns `cls(...)` (esp. subclasses) | `RuleModel.from_create`, `NotificationModel.from_create`, `NotificationDedupModel.from_create` |
+| **Module-level function** (preferred over `@staticmethod`) | Pure helper with no `self`/`cls`; not meant to be overridden | Scope matchers, small validators |
+| **`@staticmethod`** | Rare: namespaced on the class API *and* might override in a subclass | Avoid for private `_helpers` |
+
+## Anti-patterns
+
+- `@classmethod` that never uses `cls` → staticmethod or module function
+- `@staticmethod` that needs instance state → instance method
+- Instance method that never uses `self` → module function
+- Classmethods that orchestrate services → keep on injected instances (`RuleService`, `IngestService`)
+
+## Decision flow
+
+1. Needs instance state? → instance method
+2. Else alternate constructor returning `cls(...)`? → `@classmethod`
+3. Else → module-level private/public function (not `@staticmethod` for private helpers)

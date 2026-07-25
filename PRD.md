@@ -46,25 +46,44 @@ Contact-center ops need timely intraday alerts when queues slip, agents go out o
 
 ## Tradeoffs
 
-- **Python MVP vs Go for a hotter ingest path** — CPython’s GIL prevents *parallel* Python bytecode across threads (CPU-bound multi-threading won’t use multiple cores). I/O concurrency is real via asyncio/FastAPI. For this product’s typical work (cheap rule checks plus DB/network), the limit is usually I/O and noise-control design, not the GIL — even “millions of events/day” is modest average QPS. Go still helps when you want denser multi-core CPU eval, cheaper goroutines, and channel-style in-process pipelines for a dedicated stream worker. This MVP uses Python for speed-to-demo (FastAPI, Pydantic, SQLAlchemy, OpenAPI→TS), not because Python cannot concurrent-handle the demo.
-- **In-process gateway vs separately deployed services** — Rules, evaluator, notifications, and ingest run in one FastAPI process for simplicity. A real deployment would split ingest/eval/dispatch workers once scale or blast radius demands it.
-- **SQLite vs Postgres/Redis** — SQLite keeps the take-home zero-config. Postgres plus Redis (or similar) for notification-dedup memory would be the production path under concurrent writers and HA requirements.
-- **Polling vs websockets** — The notifications page polls every 3 seconds. Simple and sufficient for demo scale; websockets or SSE would reduce chatter at higher fan-out.
-- **Closed triggers vs expression language** — Faster to ship and easier to test, at the cost of flexibility for power users.
-- **Username stub vs real auth** — Unblocks rule CRUD audit fields without OAuth/session work.
-- **Generated OpenAPI client vs hand-written DTOs** — Single source of truth from Pydantic models; requires regenerating when the API changes.
+- **Python stack** — Chose FastAPI + Pydantic + SQLAlchemy so API validation and OpenAPI→TypeScript stay one pipeline. This workload is mostly I/O (HTTP + SQLite) plus cheap rule checks; the demo (~100 events) is not language-bound. CPython’s GIL limits *in-process multi-core Python threads*, but async + multiple processes scale I/O-bound services fine. Go is stronger for dense multi-core CPU workers — relevant only if profiling later shows CPU-bound eval, not a reason to reject Python for this MVP.
+- **Single process** — One FastAPI app runs rules, evaluator, notifications, and ingest. Each HTTP request uses a short DB transaction; the JSONL harness reuses a session and commits per event. Cross-snapshot memory is *not* held in that session — it lives in `notification_dedup` so become-true/window dedupe survives across events and would still work if multiple app instances shared one Postgres. The real MVP limit is blast radius / independent scaling of ingest vs CRUD, not “one session can’t see two snapshots.”
+- **No Kafka/SQS in MVP** — Events enter via `POST /events` or in-process replay. Fine at demo volume; a durable bus matters when you need fault tolerance (retry a snapshot if a consumer dies mid-evaluate), backpressure, or many producers — not as a default.
+- **SQLite file DB** — Zero setup for reviewers (`server/data/assembled.db`). Fine for one writer and light concurrent reads in the demo. Poor fit for multi-instance deploy or heavy concurrent writers; production would use Postgres (dedup can stay in Postgres, or Redis if it becomes hot).
+- **3s polling for notifications** — Good enough to watch the inbox during replay. At larger fan-out, prefer SSE (mature, one-way HTTP event streams) over websockets unless the client must push realtime messages upstream.
+- **Closed trigger set** — Four typed evaluators instead of a rule DSL. Matches the sample event types, keeps validation/UI/tests enumerable, and blocks arbitrary expressions.
+- **Username header stub** — Real auth is out of scope. `X-Username` stamps audit fields and scopes rule CRUD to the creating user; recipients remain `owner_id`. Not a login system.
+- **OpenAPI-generated client** — Request/response types from `openapi.json` → `schema.ts`. Form field visibility (`TRIGGER_FIELD_CONFIG`) and labels stay hand-maintained because codegen does not emit runtime enums or UI metadata.
 
 ## What I'd do with more time
 
-- **If/when profiling shows CPU/eval or connection-density limits:** extract ingest/evaluator/dispatch to a Go worker (channels + shard-by-entity); keep React + OpenAPI stable. Until then, scale the Python boundary with async workers/processes.
-- Real Slack/email behind the same delivery port.
-- Richer rule builder plus “would this have fired?” preview.
-- Replace username stub with real auth and authz.
-- Postgres + Redis for notification-dedup memory; shard ingest by entity.
-- Optional per-rule cooldown if flapping becomes a real ops pain.
-- Forecast / head-of-support digests.
-- Outbox + async delivery; websocket push.
-- CI freshness check for OpenAPI / `schema.ts`.
+- Move to Postgres; load-test ingest before assuming a rewrite.
+- Split ingest/eval from the CRUD API if write contention shows up (still Python first).
+- Real Slack/email (out of scope for MVP) behind `NotificationChannel` — console/inbox stubs stay; adapters plug in without changing evaluate.
+- Rule edit UI and a “would this have fired?” dry-run against a fixture window.
+- Real auth replacing `X-Username` (out of scope for MVP).
+- Optional per-rule cooldown if recover→breach flapping becomes an ops issue.
+- SSE push for the inbox; drop 3s polling. Websockets only if we need client→server realtime.
+- CI check that `openapi.json` / `schema.ts` stay in sync with the FastAPI app.
+- Message bus (e.g. SQS/Kafka) for fault tolerance: if a process dies mid-evaluate, an in-flight `POST /events` snapshot can be lost; a durable queue lets consumers retry until ack. Also useful when producers need buffering/replay independent of the API process.
+- If profiling shows CPU-bound eval at real volume: multi-process Python workers and/or a dedicated stream worker (Go is an option here), sharded by entity.
+
+### Ideal system design (post-MVP)
+
+MVP today is one FastAPI process + SQLite + polling. Direction below: durable ingest, separate CRUD vs eval, shared Postgres, push to the UI.
+
+```mermaid
+flowchart LR
+  P[Event producers] --> I[Ingest API]
+  I --> B[Durable bus<br/>SQS / Kafka]
+  B --> W[Eval workers<br/>Python or Go · shard by entity]
+  W --> DB[(Postgres<br/>rules · dedup · notifications)]
+  W --> Ext[Slack / email]
+  DB --> API[Rules + inbox API<br/>auth · REST · SSE]
+  API --> UI[React UI]
+```
+
+**Event path:** producers → ingest → bus (retry until ack) → workers → Postgres + Slack/email.
 
 ## Success criteria for the demo
 

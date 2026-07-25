@@ -1,0 +1,73 @@
+---
+description: Require a staff-level architect self-review of any plan produced in plan mode before implementation begins
+alwaysApply: true
+---
+
+# Plan Mode: Staff-Level Architect Review
+
+Any time you are operating in plan mode, the final step before handing the plan
+off for implementation MUST be a self-review of the plan from the perspective
+of a staff-level software architect, as if you were code-reviewing the
+resulting code for merge.
+
+## What to evaluate
+
+Review the planned approach critically for:
+
+- **Cleanliness** — Is each piece of proposed code clear, well-named, and easy
+  to follow? Are responsibilities obvious?
+- **DRYness** — Are there repeated patterns, duplicated logic, or parallel
+  structures that should be extracted into shared helpers, hooks, components,
+  utilities, or types? Does the plan reuse existing abstractions in the
+  codebase instead of reinventing them?
+- **Spaghetti risk** — Are control flow, data flow, and module boundaries
+  straightforward? Any tangled dependencies, circular imports, prop drilling,
+  hidden coupling, or god-objects creeping in?
+- **Separation of concerns** — Does each new/changed file have a single, clear
+  purpose? Are UI, state, data fetching, and business logic appropriately
+  split per the project's code-organization conventions?
+- **Abstraction level** — Are abstractions justified (used more than once or
+  genuinely clarifying), not speculative? Conversely, is anything obviously
+  crying out to be abstracted?
+- **Naming** — Are names precise, consistent with the codebase, and free of
+  filler words?
+- **Edge cases & error handling** — Are failure modes, loading states, empty
+  states, and invalid inputs planned for?
+- **Performance & render behavior** — Will the plan produce unnecessary
+  re-renders, wasted work, or expensive operations on the hot path? Consider:
+  - Component render cycles: stable references (`useMemo`, `useCallback`),
+    context scoping, component splitting to isolate re-renders, and avoiding
+    inline object/array/function props where they cause child re-renders.
+  - Reconciliation cost: stable keys in lists, avoiding needless remounts,
+    and not re-creating heavy children on each parent render.
+  - Data fetching: query key design, cache reuse, avoiding waterfalls,
+    over-fetching, or N+1 request patterns; appropriate use of suspense,
+    pagination, and prefetching.
+  - Expensive computations: memoization vs. recomputation trade-offs, moving
+    work off the render path (selectors, workers, derived state).
+  - Bundle and load: lazy-loading routes/components, avoiding large synchronous
+    imports on critical paths, and code-splitting where it actually helps.
+  - Large lists / tables: virtualization, stable row identity, and cheap
+    row renderers.
+  - Effects and subscriptions: correct dependency arrays, proper cleanup,
+    and avoiding effect storms or infinite update loops.
+- **Testability** — Is each unit easy to test in isolation? Does the plan
+  include a concrete testing approach?
+- **Consistency with existing patterns** — Does the plan follow established
+  conventions (hooks, route structure, form patterns, table patterns, etc.)
+  rather than inventing new ones?
+
+## How to run the review
+
+1. After drafting the plan, explicitly state: "Running staff-level architect
+   review of the plan."
+2. Walk through the criteria above and call out any concerns, even minor ones.
+3. Revise the plan in place to address the concerns. Do not just note them
+   and move on.
+4. If no changes are needed, say so explicitly and briefly justify why the
+   plan passes review.
+5. Only after this review is complete should the plan be presented as ready
+   for implementation.
+
+The goal is that the code produced from the plan should be incredibly clean —
+the kind of change a staff engineer would approve without follow-up comments.
