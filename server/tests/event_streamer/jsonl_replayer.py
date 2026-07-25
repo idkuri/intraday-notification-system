@@ -7,12 +7,12 @@ from collections.abc import Callable
 from pathlib import Path
 
 import lib.models  # noqa: F401
-from gateway.container import AppContainer
 from lib.schemas.events import Event, EventParser
 from scripts.seed_rules import seed_rules_if_empty
 from tests.event_streamer.streamer import EventStreamer
 from tests.event_streamer.types import ReplayResult
 
+from gateway.container import AppContainer
 from ingest.ingest_service import IngestService
 
 
