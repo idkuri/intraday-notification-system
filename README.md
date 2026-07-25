@@ -151,7 +151,9 @@ bun run typecheck
 
 GitHub Actions (`.github/workflows/ci.yml`) runs server lint/pytest, client lint/tests, and fails if `openapi.json` or `triggerFormConfig.generated.ts` are stale.
 
-### 9. Regenerate sample events (optional)
+### 9. Sync sample events fixture (optional)
+
+Canonical feed is `server/events.jsonl`. To copy it into the test fixture:
 
 ```bash
 cd server && uv run python scripts/generate_events.py
@@ -182,7 +184,7 @@ Story beats come from seed rule ids: `rule_lead_sla_billing`, `rule_lead_tickets
 | `server/` | `uv run pytest` | Server tests |
 | `server/` | `uv run python scripts/export_openapi.py` | OpenAPI JSON for the client |
 | `server/` | `uv run export-trigger-config` | Trigger form field flags → `triggerFormConfig.generated.ts` |
-| `server/` | `uv run python scripts/generate_events.py` | Regenerate sample JSONL feeds |
+| `server/` | `uv run python scripts/generate_events.py` | Sync `events.jsonl` → test fixture |
 | `client/` | `bun run dev` | Vite UI (usually `:5173`) |
 | `client/` | `bun run build` | Typecheck + production build |
 | `client/` | `bun run generate:api` | Regenerate `src/api-client/` from OpenAPI (`openapi-typescript-codegen`) |

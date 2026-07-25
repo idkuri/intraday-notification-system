@@ -23,7 +23,7 @@ Contact-center ops need timely intraday alerts when queues slip, agents go out o
 - Per-event evaluation with become-true checks and adherence-window dedupe (no configurable cooldown).
 - Stub delivery: console log + DB inbox; notifications UI with 3s polling.
 - Username stub for `created_by` / `updated_by` / `owner_id` (recipient): scopes rule CRUD and inbox to the logged-in user (not real auth).
-- Seed rules plus a ~90-minute / ~100-event sample morning feed.
+- Seed rules plus a ~50-minute / 96-event sample morning feed (`server/events.jsonl`).
 - Demo JSONL harness (instant replay + 10-minute stream) as an engineering aid, not a product surface.
 
 ### Out of scope
@@ -48,7 +48,7 @@ Contact-center ops need timely intraday alerts when queues slip, agents go out o
 
 ## Tradeoffs
 
-- **Python stack** — Chose FastAPI + Pydantic + SQLAlchemy so API validation and OpenAPI→TypeScript stay one pipeline. This workload is mostly I/O (HTTP + SQLite) plus cheap rule checks; the demo (~100 events) is not language-bound. CPython’s GIL limits *in-process multi-core Python threads*, but async + multiple processes scale I/O-bound services fine. Go is stronger for dense multi-core CPU workers — relevant only if profiling later shows CPU-bound eval, not a reason to reject Python for this MVP.
+- **Python stack** — Chose FastAPI + Pydantic + SQLAlchemy so API validation and OpenAPI→TypeScript stay one pipeline. This workload is mostly I/O (HTTP + SQLite) plus cheap rule checks; the demo (~96 events) is not language-bound. CPython’s GIL limits *in-process multi-core Python threads*, but async + multiple processes scale I/O-bound services fine. Go is stronger for dense multi-core CPU workers — relevant only if profiling later shows CPU-bound eval, not a reason to reject Python for this MVP.
 - **Single process** — One FastAPI app runs rules, evaluator, notifications, and ingest. Each HTTP request uses a short DB transaction; the JSONL harness reuses a session and commits per event. Cross-snapshot memory is *not* held in that session — it lives in `notification_dedup` so become-true/window dedupe survives across events and would still work if multiple app instances shared one Postgres. The real MVP limit is blast radius / independent scaling of ingest vs CRUD, not “one session can’t see two snapshots.”
 - **No Kafka/SQS in MVP** — Events enter via `POST /events` or in-process replay. Fine at demo volume; a durable bus matters when you need fault tolerance (retry a snapshot if a consumer dies mid-evaluate), backpressure, or many producers — not as a default.
 - **SQLite file DB** — Zero setup for reviewers (`server/data/assembled.db`). Fine for one writer and light concurrent reads in the demo. Poor fit for multi-instance deploy or heavy concurrent writers; production would use Postgres (dedup can stay in Postgres, or Redis if it becomes hot).

@@ -1,7 +1,7 @@
 """Demo workforce roster for sample feeds and the ``/demo/roster`` API.
 
 Single source of truth for agent IDs, display names, and queue memberships.
-Also consumed by ``scripts/generate_events.py``.
+Also used by seed rules and the demo UI roster endpoint.
 """
 
 from __future__ import annotations

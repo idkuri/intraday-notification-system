@@ -20,7 +20,7 @@ class TestJsonlReplayerIntegration:
         app_container: AppContainer,
     ) -> None:
         expected_events = _fixture_event_count()
-        assert expected_events == 98
+        assert expected_events == 96
 
         session = app_container.session()
         try:
