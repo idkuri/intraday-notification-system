@@ -1,3 +1,4 @@
+import Box from '@mui/material/Box'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppHeader } from '@/components/Layout/AppHeader'
 import { AppNav } from '@/components/Layout/AppNav'
@@ -6,16 +7,32 @@ import { RulesPage } from '@/routes/rules'
 
 export function App() {
 	return (
-		<div className="app-shell">
+		<Box
+			sx={{
+				minHeight: '100vh',
+				display: 'flex',
+				flexDirection: 'column',
+			}}
+		>
 			<AppHeader />
 			<AppNav />
-			<main className="app-main">
+			<Box
+				component="main"
+				sx={{
+					flex: 1,
+					width: '100%',
+					maxWidth: 1100,
+					mx: 'auto',
+					px: 2.5,
+					py: 2.5,
+				}}
+			>
 				<Routes>
 					<Route path="/" element={<NotificationsPage />} />
 					<Route path="/rules" element={<RulesPage />} />
 					<Route path="*" element={<Navigate to="/" replace />} />
 				</Routes>
-			</main>
-		</div>
+			</Box>
+		</Box>
 	)
 }

@@ -1,6 +1,6 @@
+from lib.schemas.demo import DemoAgentRead, DemoRosterResponse
 from lib.schemas.enums import (
     AgentState,
-    Audience,
     ChannelType,
     EventType,
     Severity,
@@ -27,8 +27,9 @@ __all__ = [
     "AdherenceCheckEvent",
     "AgentState",
     "AgentStateChangeEvent",
-    "Audience",
     "ChannelType",
+    "DemoAgentRead",
+    "DemoRosterResponse",
     "Event",
     "EventParser",
     "EventType",

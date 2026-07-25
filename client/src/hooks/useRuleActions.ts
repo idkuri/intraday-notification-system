@@ -1,11 +1,6 @@
 import { useCallback, useState } from 'react'
-import {
-	createRule,
-	deleteRule,
-	patchRule,
-	type RuleCreate,
-	type RuleUpdate,
-} from '@/lib/api'
+import { RulesService, type RuleCreate, type RuleUpdate } from '@/api-client'
+import { usernameHeader } from '@/lib/configureApiClient'
 import { getErrorMessage } from '@/lib/utils/errors'
 import { useUsernameStore } from '@/stores/usernameStore'
 
@@ -36,7 +31,10 @@ export function useRuleActions({ refetch }: UseRuleActionsOptions) {
 			setCreating(true)
 			setActionError(null)
 			try {
-				await createRule(body)
+				await RulesService.createRuleRulesPost({
+					requestBody: body,
+					...usernameHeader(),
+				})
 				await refetch()
 				return true
 			} catch (err) {
@@ -58,7 +56,11 @@ export function useRuleActions({ refetch }: UseRuleActionsOptions) {
 			setBusyRuleId(ruleId)
 			setActionError(null)
 			try {
-				await patchRule(ruleId, { enabled: !enabled })
+				await RulesService.updateRuleRulesRuleIdPatch({
+					ruleId,
+					requestBody: { enabled: !enabled },
+					...usernameHeader(),
+				})
 				await refetch()
 			} catch (err) {
 				setActionError(getErrorMessage(err))
@@ -78,7 +80,10 @@ export function useRuleActions({ refetch }: UseRuleActionsOptions) {
 			setBusyRuleId(ruleId)
 			setActionError(null)
 			try {
-				await deleteRule(ruleId)
+				await RulesService.deleteRuleRulesRuleIdDelete({
+					ruleId,
+					...usernameHeader(),
+				})
 				await refetch()
 			} catch (err) {
 				setActionError(getErrorMessage(err))
@@ -98,7 +103,11 @@ export function useRuleActions({ refetch }: UseRuleActionsOptions) {
 			setBusyRuleId(ruleId)
 			setActionError(null)
 			try {
-				await patchRule(ruleId, body)
+				await RulesService.updateRuleRulesRuleIdPatch({
+					ruleId,
+					requestBody: body,
+					...usernameHeader(),
+				})
 				await refetch()
 				return true
 			} catch (err) {

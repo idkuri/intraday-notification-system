@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from lib.schemas.enums import AgentState, Audience, ChannelType, Severity, TriggerType
+from lib.schemas.enums import AgentState, ChannelType, Severity, TriggerType
 
 
 class RuleScope(BaseModel):
@@ -19,7 +19,6 @@ class RuleCreate(BaseModel):
 
     name: str
     enabled: bool = True
-    audience: Audience
     owner_id: str
     scope: RuleScope
     trigger_type: TriggerType
@@ -36,7 +35,6 @@ class RuleUpdate(BaseModel):
 
     name: str | None = None
     enabled: bool | None = None
-    audience: Audience | None = None
     owner_id: str | None = None
     scope: RuleScope | None = None
     trigger_type: TriggerType | None = None

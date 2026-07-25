@@ -7,6 +7,7 @@ import random
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from lib.demo_roster import AGENT_IDS, AGENT_QUEUES, QUEUES
 from lib.schemas.events import (
     AdherenceCheckEvent,
     AgentStateChangeEvent,
@@ -14,8 +15,6 @@ from lib.schemas.events import (
     EventParser,
     QueueSnapshotEvent,
 )
-
-from scripts.demo_roster import AGENT_IDS, AGENT_QUEUES, QUEUES
 
 SEED = 42
 START = datetime(2026, 5, 26, 13, 0, 0, tzinfo=UTC)

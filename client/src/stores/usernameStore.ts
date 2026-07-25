@@ -17,12 +17,15 @@ function normalizeUsername(value: string): string {
 
 interface UsernameState {
 	username: string
-	setUsername: (value: string) => void
+	/** Bumps on each Login so hooks refetch even if the name is unchanged. */
+	authEpoch: number
+	login: (value: string) => void
 }
 
 export const useUsernameStore = create<UsernameState>(set => ({
 	username: readStoredUsername(),
-	setUsername: (value: string) => {
+	authEpoch: 0,
+	login: (value: string) => {
 		const username = normalizeUsername(value)
 		try {
 			if (username) {
@@ -33,7 +36,7 @@ export const useUsernameStore = create<UsernameState>(set => ({
 		} catch {
 			// Ignore storage failures; in-memory state still updates.
 		}
-		set({ username })
+		set(state => ({ username, authEpoch: state.authEpoch + 1 }))
 	},
 }))
 

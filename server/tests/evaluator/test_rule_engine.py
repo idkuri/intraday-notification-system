@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from lib.schemas.enums import Audience, ChannelType, Severity, TriggerType
+from lib.schemas.enums import ChannelType, Severity, TriggerType
 from lib.schemas.events import QueueSnapshotEvent
 from lib.schemas.rules import RuleScope
 
@@ -41,7 +41,6 @@ class TestRuleEngine:
         rule = make_rule_read(
             id="rule_sla_billing",
             name="Billing SLA breach",
-            audience=Audience.TEAM_LEAD,
             owner_id="lead_billing",
             scope=RuleScope(queue_ids=["billing"]),
             trigger_type=TriggerType.QUEUE_SLA_BREACHED,

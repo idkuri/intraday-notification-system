@@ -4,11 +4,11 @@ Persists inbox rows and stub-delivers notifications.
 
 ## Role
 
-Takes a `NotificationCreate`, delivers on configured channels (console today), and writes the notification row. Also supports listing, clearing all notifications, and clearing evaluator dedup rows on demo reset. Does not decide *whether* a rule should fire — that is `evaluator`.
+Takes a `NotificationCreate`, delivers on configured channels (console today), and writes the notification row. List/clear via the API are scoped to `recipient_id` (`X-Username`). `clear_all` + dedup clear remain for demo ingest reset. Does not decide *whether* a rule should fire — that is `evaluator`.
 
 ## Entry points
 
-- `NotificationService` — `record_and_deliver`, `list_notifications`, `clear_all`, `clear_notification_dedup`
+- `NotificationService` — `record_and_deliver`, `list_notifications`, `clear_for_recipient`, `clear_all`, `clear_notification_dedup`
 - `channels.py` — `NotificationChannel` / `ConsoleChannel`
 
 ## Wired from

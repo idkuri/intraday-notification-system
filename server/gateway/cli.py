@@ -65,3 +65,11 @@ def run_lint() -> None:
             failed = True
     if failed:
         raise SystemExit(1)
+
+
+def run_export_trigger_config() -> None:
+    """Export trigger field config to the client (``uv run export-trigger-config``)."""
+    _ensure_server_root_on_path()
+    from scripts.export_trigger_field_config import main
+
+    main()

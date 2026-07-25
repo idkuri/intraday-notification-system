@@ -41,9 +41,15 @@ Update [`rule_index.py`](rule_index.py):
 
 Without this step, the evaluator never runs.
 
-### 5. Rule validation
+### 5. Rule validation / form fields
 
-Add a `_TriggerFieldRules` entry for your type in [`rules/rule_service.py`](../rules/rule_service.py) (`_TRIGGER_FIELD_RULES`).
+Add a `TriggerFieldConfig` entry for your type in [`lib/trigger_field_config.py`](../../lib/trigger_field_config.py) (`TRIGGER_FIELD_CONFIG`). This drives API validation in `RuleService` and the React create/edit form.
+
+Then regenerate the client module:
+
+```bash
+uv run export-trigger-config
+```
 
 ### 6. Noise control (only if special)
 
@@ -61,6 +67,7 @@ From `server/`:
 
 ```bash
 uv run python scripts/export_openapi.py
+uv run export-trigger-config
 ```
 
 From `client/`:
@@ -69,16 +76,13 @@ From `client/`:
 bun run generate:api
 ```
 
-Then update [`client/src/lib/consts/triggers.ts`](../../../client/src/lib/consts/triggers.ts):
-
-- `TRIGGER_TYPES`, `TRIGGER_LABELS`
-- `TRIGGER_FIELD_CONFIG` (which create-form fields show / are required, default audience)
+That refreshes `@/api-client` enums/models and `triggerFormConfig.generated.ts`. Then add a human label in [`client/src/routes/rules/triggerFormConfig.ts`](../../../client/src/routes/rules/triggerFormConfig.ts) (`TRIGGER_LABELS` only — field flags come from the generated file).
 
 ### 9. Verify
 
 ```bash
 cd server && uv run lint && uv run pytest
-cd ../client && bun run lint
+cd ../client && bun run lint && bun test
 ```
 
 ## Mental model

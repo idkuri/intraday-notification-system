@@ -4,6 +4,7 @@ from lib.schemas.enums import TriggerType
 
 from evaluator.triggers.adherence import AdherenceEvaluator
 from evaluator.triggers.base import TriggerEvaluator
+from evaluator.triggers.forecast_over_volume import ForecastOverVolumeEvaluator
 from evaluator.triggers.sla import SlaEvaluator
 from evaluator.triggers.state_duration import StateDurationEvaluator
 from evaluator.triggers.tickets import TicketsEvaluator
@@ -17,6 +18,7 @@ class TriggerRegistry:
             AdherenceEvaluator(),
             SlaEvaluator(),
             TicketsEvaluator(),
+            ForecastOverVolumeEvaluator(),
             StateDurationEvaluator(),
         ]
         self._by_type: dict[TriggerType, TriggerEvaluator] = {

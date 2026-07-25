@@ -1,41 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Optional
 
 from lib.exceptions import DomainValidationError, NotFoundError
 from lib.models.rule import RuleModel
 from lib.schemas.enums import TriggerType
 from lib.schemas.rules import RuleCreate, RuleRead, RuleScope, RuleUpdate
+from lib.trigger_field_config import TRIGGER_FIELD_CONFIG
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
-
-@dataclass(frozen=True, slots=True)
-class _TriggerFieldRules:
-    """Which rule fields a trigger type requires."""
-
-    require_queue_ids: bool = False
-    require_agent_id: bool = False
-    require_threshold: bool = False
-    require_target_state: bool = False
-
-
-_TRIGGER_FIELD_RULES: dict[TriggerType, _TriggerFieldRules] = {
-    TriggerType.QUEUE_SLA_BREACHED: _TriggerFieldRules(require_queue_ids=True),
-    TriggerType.QUEUE_TICKETS_WAITING: _TriggerFieldRules(
-        require_queue_ids=True,
-        require_threshold=True,
-    ),
-    TriggerType.ADHERENCE_VIOLATION_DURATION: _TriggerFieldRules(
-        require_agent_id=True,
-        require_threshold=True,
-    ),
-    TriggerType.AGENT_STATE_DURATION: _TriggerFieldRules(
-        require_threshold=True,
-        require_target_state=True,
-    ),
-}
 
 
 def _validate_actor(actor: str) -> None:
@@ -50,16 +23,22 @@ def _validate_trigger_fields(
     threshold: int | None,
     target_state: object | None,
 ) -> None:
-    rules = _TRIGGER_FIELD_RULES[trigger_type]
+    rules = TRIGGER_FIELD_CONFIG[trigger_type]
     label = trigger_type.value
+    has_agent = bool(scope.agent_id and scope.agent_id.strip())
+    has_queues = bool(scope.queue_ids)
 
-    if rules.require_queue_ids and not scope.queue_ids:
+    if rules.queue_ids_required and not has_queues:
         raise DomainValidationError("scope.queue_ids is required and must be non-empty")
-    if rules.require_agent_id and not scope.agent_id:
+    if rules.agent_id_required and not has_agent:
         raise DomainValidationError(f"scope.agent_id is required for {label}")
-    if rules.require_threshold and (threshold is None or threshold <= 0):
+    if rules.require_agent_or_queues and not has_agent and not has_queues:
+        raise DomainValidationError(
+            f"scope.agent_id and/or scope.queue_ids is required for {label}"
+        )
+    if rules.threshold_required and (threshold is None or threshold <= 0):
         raise DomainValidationError(f"threshold must be > 0 for {label}")
-    if rules.require_target_state and target_state is None:
+    if rules.target_state_required and target_state is None:
         raise DomainValidationError(f"target_state is required for {label}")
 
 
@@ -87,9 +66,7 @@ class RuleService:
         _validate_actor(actor)
         username = actor.strip()
         rules = self._session.scalars(
-            select(RuleModel)
-            .where(RuleModel.created_by == username)
-            .order_by(RuleModel.name)
+            select(RuleModel).where(RuleModel.created_by == username).order_by(RuleModel.name)
         ).all()
         return [rule.to_schema() for rule in rules]
 
@@ -132,8 +109,10 @@ class RuleService:
             DomainValidationError: When ``data`` or ``actor`` is invalid.
         """
         _validate_actor(actor)
+        username = actor.strip()
+        data = data.model_copy(update={"owner_id": username})
         _validate_rule_fields(data)
-        rule = RuleModel.from_create(data, actor=actor.strip())
+        rule = RuleModel.from_create(data, actor=username)
         self._session.add(rule)
         self._session.flush()
         return rule.to_schema()
@@ -154,13 +133,13 @@ class RuleService:
             DomainValidationError: When the merged rule would be invalid.
         """
         rule = self._require_owned_model(rule_id, actor=actor)
+        username = actor.strip()
 
         existing = rule.to_schema()
         merged = RuleCreate(
             name=data.name if data.name is not None else existing.name,
             enabled=data.enabled if data.enabled is not None else existing.enabled,
-            audience=data.audience if data.audience is not None else existing.audience,
-            owner_id=data.owner_id if data.owner_id is not None else existing.owner_id,
+            owner_id=username,
             scope=data.scope if data.scope is not None else existing.scope,
             trigger_type=(
                 data.trigger_type if data.trigger_type is not None else existing.trigger_type
@@ -174,7 +153,7 @@ class RuleService:
         )
         _validate_rule_fields(merged)
 
-        rule.apply_update(data, actor=actor.strip())
+        rule.apply_update(data, actor=username)
         self._session.flush()
         return rule.to_schema()
 

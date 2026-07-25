@@ -1,20 +1,28 @@
 import { useState } from 'react'
+import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
+import Paper from '@mui/material/Paper'
+import Stack from '@mui/material/Stack'
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody'
+import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
+import TableHead from '@mui/material/TableHead'
+import TableRow from '@mui/material/TableRow'
+import Typography from '@mui/material/Typography'
 import { useNotifications } from '@/hooks/useNotifications'
+import { SEVERITY_CHIP_COLOR } from '@/lib/severity'
 import { getErrorMessage } from '@/lib/utils/errors'
 
-function severityClass(severity: string): string {
-	switch (severity) {
-		case 'critical':
-			return 'badge badge-critical'
-		case 'warning':
-			return 'badge badge-warning'
-		default:
-			return 'badge badge-info'
-	}
-}
+const monoSx = {
+	fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+} as const
 
 export function NotificationsPage() {
-	const { notifications, loading, error, clearInbox } = useNotifications()
+	const { notifications, loading, error, clearInbox, canView } =
+		useNotifications()
 	const [clearing, setClearing] = useState(false)
 	const [clearError, setClearError] = useState<string | null>(null)
 
@@ -31,60 +39,102 @@ export function NotificationsPage() {
 	}
 
 	return (
-		<section>
-			<div className="page-header">
-				<h2>Notifications</h2>
-				<button
-					type="button"
-					className="btn btn-danger"
-					disabled={loading || clearing || notifications.length === 0}
+		<Box component="section">
+			<Stack
+				direction="row"
+				spacing={2}
+				sx={{
+					mb: 2,
+					alignItems: 'center',
+					justifyContent: 'space-between',
+				}}
+			>
+				<Typography variant="h5" component="h2">
+					Notifications
+				</Typography>
+				<Button
+					variant="outlined"
+					color="error"
+					disabled={
+						!canView || loading || clearing || notifications.length === 0
+					}
 					onClick={() => void handleClearInbox()}
 				>
 					{clearing ? 'Clearing…' : 'Clear inbox'}
-				</button>
-			</div>
+				</Button>
+			</Stack>
 
-			{error && <div className="alert alert-error">{error}</div>}
-			{clearError && <div className="alert alert-error">{clearError}</div>}
-
-			{loading && notifications.length === 0 ? (
-				<div className="empty-state">Loading notifications…</div>
-			) : notifications.length === 0 ? (
-				<div className="empty-state">No notifications yet.</div>
-			) : (
-				<div className="panel">
-					<table className="data-table">
-						<thead>
-							<tr>
-								<th>ID</th>
-								<th>Severity</th>
-								<th>Title</th>
-								<th>Body</th>
-								<th>Recipient</th>
-								<th>Rule ID</th>
-								<th>Timestamp</th>
-							</tr>
-						</thead>
-						<tbody>
-							{notifications.map(notification => (
-								<tr key={notification.id}>
-									<td className="mono">{notification.id}</td>
-									<td>
-										<span className={severityClass(notification.severity)}>
-											{notification.severity}
-										</span>
-									</td>
-									<td>{notification.title}</td>
-									<td>{notification.body}</td>
-									<td className="mono">{notification.recipient_id}</td>
-									<td className="mono">{notification.rule_id}</td>
-									<td>{new Date(notification.ts).toLocaleString()}</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+			{!canView && (
+				<Alert severity="info" sx={{ mb: 2 }}>
+					Login with a username to view your inbox. Seed recipients: a_19, a_42,
+					lead_billing.
+				</Alert>
 			)}
-		</section>
+
+			{(error || clearError) && (
+				<Alert severity="error" sx={{ mb: 2 }}>
+					{error ?? clearError}
+				</Alert>
+			)}
+
+			{!canView ? (
+				<Typography color="text.secondary">No username set.</Typography>
+			) : loading && notifications.length === 0 ? (
+				<Typography color="text.secondary">Loading notifications…</Typography>
+			) : notifications.length === 0 ? (
+				<Typography color="text.secondary">
+					No notifications for this recipient yet.
+				</Typography>
+			) : (
+				<TableContainer component={Paper} variant="outlined">
+					<Table size="small">
+						<TableHead>
+							<TableRow>
+								<TableCell>ID</TableCell>
+								<TableCell>Severity</TableCell>
+								<TableCell>Title</TableCell>
+								<TableCell>Body</TableCell>
+								<TableCell>Recipient</TableCell>
+								<TableCell>Rule ID</TableCell>
+								<TableCell>Timestamp</TableCell>
+							</TableRow>
+						</TableHead>
+						<TableBody>
+							{notifications.map(notification => (
+								<TableRow key={notification.id} hover>
+									<TableCell>
+										<Typography component="span" variant="body2" sx={monoSx}>
+											{notification.id}
+										</Typography>
+									</TableCell>
+									<TableCell>
+										<Chip
+											size="small"
+											label={notification.severity}
+											color={SEVERITY_CHIP_COLOR[notification.severity]}
+										/>
+									</TableCell>
+									<TableCell>{notification.title}</TableCell>
+									<TableCell>{notification.body}</TableCell>
+									<TableCell>
+										<Typography component="span" variant="body2" sx={monoSx}>
+											{notification.recipient_id}
+										</Typography>
+									</TableCell>
+									<TableCell>
+										<Typography component="span" variant="body2" sx={monoSx}>
+											{notification.rule_id}
+										</Typography>
+									</TableCell>
+									<TableCell>
+										{new Date(notification.ts).toLocaleString()}
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</TableContainer>
+			)}
+		</Box>
 	)
 }

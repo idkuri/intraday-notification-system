@@ -12,7 +12,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from lib.db.base import Base
 from lib.schemas.enums import (
     AgentState,
-    Audience,
     ChannelType,
     Severity,
     TriggerType,
@@ -25,8 +24,8 @@ if TYPE_CHECKING:
     from lib.models.notification_dedup import NotificationDedupModel
 
 _UNSET: Any = object()
-_ENUM_UPDATE_FIELDS = frozenset({"audience", "trigger_type", "target_state", "severity"})
-_PLAIN_UPDATE_FIELDS = frozenset({"name", "enabled", "owner_id", "threshold"})
+_ENUM_UPDATE_FIELDS = frozenset({"trigger_type", "target_state", "severity"})
+_PLAIN_UPDATE_FIELDS = frozenset({"name", "enabled", "threshold"})
 
 
 def _enum_value(value: Any) -> str:
@@ -43,7 +42,6 @@ class RuleModel(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    audience: Mapped[str] = mapped_column(String(32), nullable=False)
     owner_id: Mapped[str] = mapped_column(String(64), nullable=False)
     scope_agent_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     scope_queue_ids_json: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -79,7 +77,6 @@ class RuleModel(Base):
             id=self.id,
             name=self.name,
             enabled=self.enabled,
-            audience=Audience(self.audience),
             owner_id=self.owner_id,
             scope=RuleScope(agent_id=self.scope_agent_id, queue_ids=queue_ids),
             trigger_type=TriggerType(self.trigger_type),
@@ -104,7 +101,6 @@ class RuleModel(Base):
             id=rule_id or f"rule_{uuid.uuid4().hex[:12]}",
             name=data.name,
             enabled=data.enabled,
-            audience=data.audience.value,
             owner_id=data.owner_id,
             scope_agent_id=data.scope.agent_id,
             scope_queue_ids_json=queue_ids_json,
@@ -122,6 +118,7 @@ class RuleModel(Base):
     def apply_update(self, data: RuleUpdate, *, actor: str) -> None:
         """Apply a partial ``RuleUpdate`` to this row (only fields present in the payload)."""
         patch = data.model_dump(exclude_unset=True)
+        patch.pop("owner_id", None)
         scope = patch.pop("scope", _UNSET)
         channels = patch.pop("channels", _UNSET)
 

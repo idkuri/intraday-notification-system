@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 from lib.exceptions import DomainValidationError, NotFoundError
-from lib.schemas.enums import Audience, ChannelType, Severity, TriggerType
+from lib.schemas.enums import AgentState, ChannelType, Severity, TriggerType
 from lib.schemas.rules import RuleCreate, RuleScope, RuleUpdate
 from scripts.seed_rules import seed_rules_if_empty
 
@@ -12,7 +12,6 @@ from rules.rule_service import RuleService
 def _agent_rule(*, name: str, owner_id: str = "a_1") -> RuleCreate:
     return RuleCreate(
         name=name,
-        audience=Audience.AGENT,
         owner_id=owner_id,
         scope=RuleScope(agent_id=owner_id),
         trigger_type=TriggerType.ADHERENCE_VIOLATION_DURATION,
@@ -26,7 +25,6 @@ class TestRuleService:
         created = service.create_rule(
             RuleCreate(
                 name="Billing SLA breach",
-                audience=Audience.TEAM_LEAD,
                 owner_id="lead_billing",
                 scope=RuleScope(queue_ids=["billing"]),
                 trigger_type=TriggerType.QUEUE_SLA_BREACHED,
@@ -39,6 +37,7 @@ class TestRuleService:
         assert created.id.startswith("rule_")
         assert created.created_by == "tester"
         assert created.updated_by == "tester"
+        assert created.owner_id == "tester"
 
         fetched = service.get_rule(created.id, actor="tester")
         assert fetched is not None
@@ -67,7 +66,9 @@ class TestRuleService:
         bob_rules = service.list_rules(actor="bob")
 
         assert [rule.name for rule in alice_rules] == ["Alice rule"]
+        assert alice_rules[0].owner_id == "alice"
         assert [rule.name for rule in bob_rules] == ["Bob rule"]
+        assert bob_rules[0].owner_id == "bob"
 
     def test_list_enabled_rules_is_global(self, db_session) -> None:
         service = RuleService(db_session)
@@ -76,7 +77,6 @@ class TestRuleService:
             RuleCreate(
                 name="Disabled rule",
                 enabled=False,
-                audience=Audience.AGENT,
                 owner_id="a_2",
                 scope=RuleScope(agent_id="a_2"),
                 trigger_type=TriggerType.ADHERENCE_VIOLATION_DURATION,
@@ -112,7 +112,6 @@ class TestRuleService:
             (
                 RuleCreate(
                     name="",
-                    audience=Audience.TEAM_LEAD,
                     owner_id="lead",
                     scope=RuleScope(queue_ids=["billing"]),
                     trigger_type=TriggerType.QUEUE_SLA_BREACHED,
@@ -122,7 +121,6 @@ class TestRuleService:
             (
                 RuleCreate(
                     name="Bad tickets rule",
-                    audience=Audience.TEAM_LEAD,
                     owner_id="lead",
                     scope=RuleScope(queue_ids=["billing"]),
                     trigger_type=TriggerType.QUEUE_TICKETS_WAITING,
@@ -132,8 +130,17 @@ class TestRuleService:
             ),
             (
                 RuleCreate(
+                    name="Bad forecast-over-volume rule",
+                    owner_id="lead",
+                    scope=RuleScope(queue_ids=["billing"]),
+                    trigger_type=TriggerType.QUEUE_FORECAST_OVER_VOLUME,
+                    threshold=None,
+                ),
+                "threshold must be > 0",
+            ),
+            (
+                RuleCreate(
                     name="Bad adherence rule",
-                    audience=Audience.AGENT,
                     owner_id="a_1",
                     scope=RuleScope(agent_id=""),
                     trigger_type=TriggerType.ADHERENCE_VIOLATION_DURATION,
@@ -144,7 +151,6 @@ class TestRuleService:
             (
                 RuleCreate(
                     name="Bad state rule",
-                    audience=Audience.AGENT,
                     owner_id="a_1",
                     scope=RuleScope(agent_id="a_1"),
                     trigger_type=TriggerType.AGENT_STATE_DURATION,
@@ -152,6 +158,17 @@ class TestRuleService:
                     target_state=None,
                 ),
                 "target_state is required",
+            ),
+            (
+                RuleCreate(
+                    name="Bad state scope rule",
+                    owner_id="a_1",
+                    scope=RuleScope(),
+                    trigger_type=TriggerType.AGENT_STATE_DURATION,
+                    threshold=600,
+                    target_state=AgentState.ON_CALL,
+                ),
+                "scope.agent_id and/or scope.queue_ids is required",
             ),
         ],
     )
@@ -167,7 +184,6 @@ class TestRuleService:
         service = RuleService(db_session)
         payload = RuleCreate(
             name="Valid rule",
-            audience=Audience.TEAM_LEAD,
             owner_id="lead",
             scope=RuleScope(queue_ids=["billing"]),
             trigger_type=TriggerType.QUEUE_SLA_BREACHED,
@@ -178,19 +194,20 @@ class TestRuleService:
 
 
 class TestSeedRulesScript:
-    def test_seed_rules_if_empty_creates_five_rules(self, db_session) -> None:
+    def test_seed_rules_if_empty_creates_six_rules(self, db_session) -> None:
         inserted = seed_rules_if_empty(db_session)
         db_session.flush()
 
         service = RuleService(db_session)
         all_enabled = service.list_enabled_rules()
 
-        assert inserted == 5
-        assert len(all_enabled) == 5
+        assert inserted == 6
+        assert len(all_enabled) == 6
         assert {rule.id for rule in all_enabled} == {
             "rule_agent_adherence",
             "rule_lead_sla_billing",
             "rule_lead_tickets_billing",
+            "rule_lead_forecast_over_volume",
             "rule_lead_long_call",
             "rule_agent_long_call",
         }
@@ -207,6 +224,7 @@ class TestSeedRulesScript:
         assert {rule.id for rule in lead_rules} == {
             "rule_lead_sla_billing",
             "rule_lead_tickets_billing",
+            "rule_lead_forecast_over_volume",
             "rule_lead_long_call",
         }
         assert {rule.id for rule in a19_rules} == {"rule_agent_adherence"}
@@ -214,8 +232,8 @@ class TestSeedRulesScript:
         assert service.list_rules(actor="system") == []
 
     def test_seed_rules_if_empty_is_idempotent(self, db_session) -> None:
-        assert seed_rules_if_empty(db_session) == 5
+        assert seed_rules_if_empty(db_session) == 6
         assert seed_rules_if_empty(db_session) == 0
 
         service = RuleService(db_session)
-        assert len(service.list_enabled_rules()) == 5
+        assert len(service.list_enabled_rules()) == 6

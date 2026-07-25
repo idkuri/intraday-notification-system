@@ -11,19 +11,19 @@ from __future__ import annotations
 import argparse
 
 import lib.models  # noqa: F401
-from gateway.container import AppContainer
 from lib.models.rule import RuleModel
-from lib.schemas.enums import AgentState, Audience, ChannelType, Severity, TriggerType
+from lib.schemas.enums import AgentState, ChannelType, Severity, TriggerType
 from lib.schemas.rules import RuleCreate, RuleScope
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
+
+from gateway.container import AppContainer
 
 _SEED_RULES: list[tuple[str, RuleCreate]] = [
     (
         "rule_agent_adherence",
         RuleCreate(
             name="My adherence > 10m",
-            audience=Audience.AGENT,
             owner_id="a_19",
             scope=RuleScope(agent_id="a_19"),
             trigger_type=TriggerType.ADHERENCE_VIOLATION_DURATION,
@@ -36,7 +36,6 @@ _SEED_RULES: list[tuple[str, RuleCreate]] = [
         "rule_lead_sla_billing",
         RuleCreate(
             name="Billing SLA breach",
-            audience=Audience.TEAM_LEAD,
             owner_id="lead_billing",
             scope=RuleScope(queue_ids=["billing"]),
             trigger_type=TriggerType.QUEUE_SLA_BREACHED,
@@ -48,7 +47,6 @@ _SEED_RULES: list[tuple[str, RuleCreate]] = [
         "rule_lead_tickets_billing",
         RuleCreate(
             name="Billing backlog ≥ 20",
-            audience=Audience.TEAM_LEAD,
             owner_id="lead_billing",
             scope=RuleScope(queue_ids=["billing"]),
             trigger_type=TriggerType.QUEUE_TICKETS_WAITING,
@@ -58,10 +56,21 @@ _SEED_RULES: list[tuple[str, RuleCreate]] = [
         ),
     ),
     (
+        "rule_lead_forecast_over_volume",
+        RuleCreate(
+            name="Billing forecast ≥ 130% of recent volume",
+            owner_id="lead_billing",
+            scope=RuleScope(queue_ids=["billing"]),
+            trigger_type=TriggerType.QUEUE_FORECAST_OVER_VOLUME,
+            threshold=130,
+            severity=Severity.WARNING,
+            channels=[ChannelType.CONSOLE, ChannelType.INBOX],
+        ),
+    ),
+    (
         "rule_lead_long_call",
         RuleCreate(
             name="Long call ≥ 45m",
-            audience=Audience.TEAM_LEAD,
             owner_id="lead_billing",
             scope=RuleScope(queue_ids=["billing", "tier_2", "vip"]),
             trigger_type=TriggerType.AGENT_STATE_DURATION,
@@ -75,7 +84,6 @@ _SEED_RULES: list[tuple[str, RuleCreate]] = [
         "rule_agent_long_call",
         RuleCreate(
             name="My long call ≥ 45m",
-            audience=Audience.AGENT,
             owner_id="a_42",
             scope=RuleScope(agent_id="a_42"),
             trigger_type=TriggerType.AGENT_STATE_DURATION,
@@ -104,9 +112,7 @@ def seed_rules_if_empty(session: Session) -> int:
     for rule_id, data in _SEED_RULES:
         # created_by matches the demo persona so reviewers see seed rules
         # when they set X-Username to a_19 / a_42 / lead_billing.
-        session.add(
-            RuleModel.from_create(data, actor=data.owner_id, rule_id=rule_id)
-        )
+        session.add(RuleModel.from_create(data, actor=data.owner_id, rule_id=rule_id))
     session.flush()
     return len(_SEED_RULES)
 

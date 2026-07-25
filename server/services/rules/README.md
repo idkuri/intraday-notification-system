@@ -16,12 +16,12 @@ Owns the configured alert rules operators create in the UI. Validates trigger-sp
 
 ## Depends on
 
-`lib.models.rule`, `lib.schemas.rules` / `enums`, `lib.exceptions`, SQLAlchemy session.
+`lib.models.rule`, `lib.schemas.rules` / `enums`, `lib.trigger_field_config`, `lib.exceptions`, SQLAlchemy session.
 
 ## Key files
 
 | File | Purpose |
 |------|---------|
-| `rule_service.py` | CRUD + `_TRIGGER_FIELD_RULES` / `_validate_trigger_fields` |
+| `rule_service.py` | CRUD + `_validate_trigger_fields` (reads `TRIGGER_FIELD_CONFIG`) |
 
-When adding a trigger, add a row to `_TRIGGER_FIELD_RULES` (see also `evaluator/evaluator.md`).
+When adding a trigger, add a row in `lib/trigger_field_config.py` and run `uv run export-trigger-config` (see also `evaluator/evaluator.md`).

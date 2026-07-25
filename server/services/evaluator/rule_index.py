@@ -9,7 +9,13 @@ from lib.schemas.events import (
 )
 from lib.schemas.rules import RuleRead
 
-_QUEUE_TRIGGERS = frozenset({TriggerType.QUEUE_SLA_BREACHED, TriggerType.QUEUE_TICKETS_WAITING})
+_QUEUE_TRIGGERS = frozenset(
+    {
+        TriggerType.QUEUE_SLA_BREACHED,
+        TriggerType.QUEUE_TICKETS_WAITING,
+        TriggerType.QUEUE_FORECAST_OVER_VOLUME,
+    }
+)
 _AGENT_TRIGGERS = frozenset(
     {TriggerType.ADHERENCE_VIOLATION_DURATION, TriggerType.AGENT_STATE_DURATION}
 )
@@ -29,11 +35,16 @@ def _queue_scope_matches(rule: RuleRead, queue_id: str) -> bool:
     return queue_id in queue_ids
 
 
-def _agent_scope_matches(rule: RuleRead, agent_id: str, event_queue_ids: list[str]) -> bool:
+def _agent_scope_matches(rule: RuleRead, agent_id: str, event_queue_ids: list[str] | None) -> bool:
     """Return True when agent/queue scope constraints match the event."""
     scope = rule.scope
     agent_ok = scope.agent_id is None or scope.agent_id == agent_id
-    queue_ok = scope.queue_ids is None or bool(set(scope.queue_ids) & set(event_queue_ids))
+    if scope.queue_ids is None:
+        queue_ok = True
+    elif not event_queue_ids:
+        queue_ok = False
+    else:
+        queue_ok = bool(set(scope.queue_ids) & set(event_queue_ids))
     return agent_ok and queue_ok
 
 

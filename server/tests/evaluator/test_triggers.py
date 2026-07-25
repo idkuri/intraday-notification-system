@@ -10,6 +10,7 @@ from lib.schemas.events import (
 )
 
 from evaluator.triggers.adherence import AdherenceEvaluator
+from evaluator.triggers.forecast_over_volume import ForecastOverVolumeEvaluator
 from evaluator.triggers.sla import SlaEvaluator
 from evaluator.triggers.state_duration import StateDurationEvaluator
 from evaluator.triggers.tickets import TicketsEvaluator
@@ -199,6 +200,135 @@ class TestTicketsEvaluator:
         assert match.condition_true is False
 
 
+class TestForecastOverVolumeEvaluator:
+    def setup_method(self) -> None:
+        self.evaluator = ForecastOverVolumeEvaluator()
+        self.rule = make_rule_read(
+            trigger_type=TriggerType.QUEUE_FORECAST_OVER_VOLUME,
+            threshold=130,
+        )
+
+    def test_condition_true_when_forecast_at_or_above_threshold_percent_of_recent(self) -> None:
+        # forecast 29 vs last 9 => ~322% of recent (>= 130%)
+        event = QueueSnapshotEvent(
+            event_id="e_fov_true",
+            ts=_ts(),
+            type="queue_snapshot",
+            queue_id="billing",
+            tickets_waiting=5,
+            longest_wait_sec=30,
+            sla_target_sec=60,
+            agents_available=1,
+            agents_on_call=0,
+            volume_last_15m=9,
+            volume_forecast_next_15m=29,
+        )
+
+        match = self.evaluator.evaluate(event, self.rule)
+
+        assert match is not None
+        assert match.condition_true is True
+        assert match.entity_key == "queue:billing"
+        assert "29" in match.body
+        assert "9" in match.body
+        assert "130%" in match.body
+
+    def test_condition_false_when_forecast_below_threshold_percent_of_recent(self) -> None:
+        # forecast 10 vs last 12 => ~83% of recent (< 130%)
+        event = QueueSnapshotEvent(
+            event_id="e_fov_false",
+            ts=_ts(),
+            type="queue_snapshot",
+            queue_id="billing",
+            tickets_waiting=5,
+            longest_wait_sec=30,
+            sla_target_sec=60,
+            agents_available=1,
+            agents_on_call=0,
+            volume_last_15m=12,
+            volume_forecast_next_15m=10,
+        )
+
+        match = self.evaluator.evaluate(event, self.rule)
+
+        assert match is not None
+        assert match.condition_true is False
+
+    def test_condition_true_when_recent_zero_and_forecast_positive(self) -> None:
+        event = QueueSnapshotEvent(
+            event_id="e_fov_zero_recent",
+            ts=_ts(),
+            type="queue_snapshot",
+            queue_id="billing",
+            tickets_waiting=5,
+            longest_wait_sec=30,
+            sla_target_sec=60,
+            agents_available=1,
+            agents_on_call=0,
+            volume_last_15m=0,
+            volume_forecast_next_15m=5,
+        )
+
+        match = self.evaluator.evaluate(event, self.rule)
+
+        assert match is not None
+        assert match.condition_true is True
+
+    def test_condition_false_when_recent_zero_and_forecast_zero(self) -> None:
+        event = QueueSnapshotEvent(
+            event_id="e_fov_both_zero",
+            ts=_ts(),
+            type="queue_snapshot",
+            queue_id="billing",
+            tickets_waiting=0,
+            longest_wait_sec=0,
+            sla_target_sec=60,
+            agents_available=1,
+            agents_on_call=0,
+            volume_last_15m=0,
+            volume_forecast_next_15m=0,
+        )
+
+        match = self.evaluator.evaluate(event, self.rule)
+
+        assert match is not None
+        assert match.condition_true is False
+
+    def test_condition_false_when_forecast_is_null(self) -> None:
+        event = QueueSnapshotEvent(
+            event_id="e_fov_null_forecast",
+            ts=_ts(),
+            type="queue_snapshot",
+            queue_id="billing",
+            tickets_waiting=14,
+            longest_wait_sec=200,
+            sla_target_sec=120,
+            agents_available=1,
+            agents_on_call=3,
+            volume_last_15m=30,
+            volume_forecast_next_15m=None,
+        )
+
+        match = self.evaluator.evaluate(event, self.rule)
+
+        assert match is not None
+        assert match.condition_true is False
+
+    def test_returns_none_for_non_queue_snapshot_event(self) -> None:
+        event = AgentStateChangeEvent(
+            event_id="e_fov_wrong",
+            ts=_ts(),
+            type="agent_state_change",
+            agent_id="a_42",
+            queue_ids=["billing"],
+            previous_state="on_call",
+            previous_state_duration_sec=100,
+            new_state="available",
+        )
+
+        assert self.evaluator.evaluate(event, self.rule) is None
+
+
 class TestStateDurationEvaluator:
     def setup_method(self) -> None:
         self.evaluator = StateDurationEvaluator()
@@ -260,6 +390,24 @@ class TestStateDurationEvaluator:
 
         assert match is not None
         assert match.condition_true is False
+
+    def test_condition_false_when_previous_state_fields_are_null(self) -> None:
+        event = AgentStateChangeEvent(
+            event_id="e11b",
+            ts=_ts(),
+            type="agent_state_change",
+            agent_id="a_42",
+            queue_ids=["billing"],
+            previous_state=None,
+            previous_state_duration_sec=None,
+            new_state="available",
+        )
+
+        match = self.evaluator.evaluate(event, self.rule)
+
+        assert match is not None
+        assert match.condition_true is False
+        assert match.entity_key == "agent:a_42"
 
     def test_returns_none_for_non_state_change_event(self) -> None:
         event = QueueSnapshotEvent(

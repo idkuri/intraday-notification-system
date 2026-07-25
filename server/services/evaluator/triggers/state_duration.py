@@ -33,7 +33,10 @@ class StateDurationEvaluator(TriggerEvaluator):
         target_state = rule.target_state.value if rule.target_state is not None else ""
 
         condition_true = (
-            event.previous_state == target_state and event.previous_state_duration_sec >= threshold
+            event.previous_state is not None
+            and event.previous_state_duration_sec is not None
+            and event.previous_state == target_state
+            and event.previous_state_duration_sec >= threshold
         )
 
         if not condition_true:

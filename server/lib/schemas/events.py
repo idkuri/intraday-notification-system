@@ -4,7 +4,7 @@ import json
 from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
@@ -22,7 +22,7 @@ class QueueSnapshotEvent(BaseModel):
     agents_available: int
     agents_on_call: int
     volume_last_15m: int
-    volume_forecast_next_15m: int
+    volume_forecast_next_15m: Optional[int] = None
 
 
 class AgentStateChangeEvent(BaseModel):
@@ -32,9 +32,9 @@ class AgentStateChangeEvent(BaseModel):
     ts: datetime
     type: Literal["agent_state_change"]
     agent_id: str
-    queue_ids: list[str]
-    previous_state: str
-    previous_state_duration_sec: int
+    queue_ids: Optional[list[str]] = None
+    previous_state: Optional[str] = None
+    previous_state_duration_sec: Optional[int] = None
     new_state: str
 
 
@@ -45,11 +45,11 @@ class AdherenceCheckEvent(BaseModel):
     ts: datetime
     type: Literal["adherence_check"]
     agent_id: str
-    queue_ids: list[str]
+    queue_ids: Optional[list[str]] = None
     scheduled_state: str
     actual_state: str
     in_violation: bool
-    violation_started_at: datetime | None = None
+    violation_started_at: Optional[datetime] = None
 
 
 Event = Annotated[

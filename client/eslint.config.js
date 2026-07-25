@@ -9,8 +9,8 @@ export default tseslint.config(
 		ignores: [
 			'dist/**',
 			'node_modules/**',
-			'src/lib/api-client/**',
-			'src/lib/generated/**',
+			'src/generated/**',
+			'src/api-client/**',
 		],
 	},
 	eslint.configs.recommended,

@@ -23,6 +23,7 @@ dev = "gateway.cli:run_dev"
 seed-rules = "gateway.cli:run_seed_rules"
 stream-events = "gateway.cli:run_stream_events"
 lint = "gateway.cli:run_lint"
+export-trigger-config = "gateway.cli:run_export_trigger_config"
 
 [build-system]
 requires = ["hatchling"]

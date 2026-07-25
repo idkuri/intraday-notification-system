@@ -24,10 +24,12 @@ def _event_summary(event: Event) -> str:
             f"longest_wait={event.longest_wait_sec}s sla={event.sla_target_sec}s"
         )
     if event.type == "agent_state_change":
-        return (
-            f"agent={event.agent_id} {event.previous_state}->{event.new_state} "
-            f"(prev_duration={event.previous_state_duration_sec}s)"
-        )
+        prev = event.previous_state if event.previous_state is not None else "none"
+        if event.previous_state_duration_sec is None:
+            duration = "n/a"
+        else:
+            duration = f"{event.previous_state_duration_sec}s"
+        return f"agent={event.agent_id} {prev}->{event.new_state} (prev_duration={duration})"
     return (
         f"agent={event.agent_id} violation={event.in_violation} "
         f"scheduled={event.scheduled_state} actual={event.actual_state}"

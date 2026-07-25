@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-	clearNotifications,
-	listNotifications,
-	type NotificationRead,
-} from '@/lib/api'
+import { NotificationsService, type NotificationRead } from '@/api-client'
+import { usernameHeader } from '@/lib/configureApiClient'
 import { getErrorMessage } from '@/lib/utils/errors'
+import { useUsernameStore } from '@/stores/usernameStore'
 
 const POLL_INTERVAL_MS = 3000
 
 export function useNotifications() {
+	const username = useUsernameStore(state => state.username)
+	const authEpoch = useUsernameStore(state => state.authEpoch)
 	const [notifications, setNotifications] = useState<NotificationRead[]>([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -17,8 +17,21 @@ export function useNotifications() {
 	const refetch = useCallback(async () => {
 		const requestId = ++requestIdRef.current
 
+		if (!username.trim()) {
+			if (requestId !== requestIdRef.current) {
+				return
+			}
+			setNotifications([])
+			setError(null)
+			setLoading(false)
+			return
+		}
+
 		try {
-			const data = await listNotifications()
+			const data =
+				await NotificationsService.listNotificationsNotificationsGet(
+					usernameHeader()
+				)
 			if (requestId !== requestIdRef.current) {
 				return
 			}
@@ -34,7 +47,7 @@ export function useNotifications() {
 				setLoading(false)
 			}
 		}
-	}, [])
+	}, [username])
 
 	useEffect(() => {
 		void refetch()
@@ -46,10 +59,11 @@ export function useNotifications() {
 			requestIdRef.current += 1
 			window.clearInterval(intervalId)
 		}
-	}, [refetch])
+		// authEpoch: re-run on Login even when the username string is unchanged.
+	}, [refetch, authEpoch])
 
 	const clearInbox = useCallback(async () => {
-		await clearNotifications()
+		await NotificationsService.clearInboxNotificationsDelete(usernameHeader())
 		await refetch()
 	}, [refetch])
 
@@ -59,5 +73,6 @@ export function useNotifications() {
 		error,
 		clearInbox,
 		refetch,
+		canView: Boolean(username.trim()),
 	}
 }

@@ -60,7 +60,7 @@ Rules are configured over HTTP; events enter via `POST /events` or the JSONL har
 
 ### Prerequisites
 
-Python 3.11+, [uv](https://docs.astral.sh/uv/), [Bun](https://bun.sh/)
+Python 3.12 (pinned in `server/.python-version` for `uv sync`), [uv](https://docs.astral.sh/uv/), [Bun](https://bun.sh/)
 
 ### 1. Install dependencies
 
@@ -71,16 +71,17 @@ cd ../client && bun install
 
 `uv sync` installs the app packages (`lib`, `rules`, `evaluator`, `notifications`, `ingest`, `gateway`) editable into the venv — no `PYTHONPATH` export needed.
 
-### 2. Generate the TypeScript API client (and demo roster)
+### 2. Generate the TypeScript API client and trigger form config
 
 ```bash
 cd server
 uv run python scripts/export_openapi.py
+uv run export-trigger-config
 cd ../client
 bun run generate:api
 ```
 
-`export_openapi.py` also writes `client/src/lib/generated/demo-roster.ts` from `scripts/demo_roster.py`.
+Writes `client/src/api-client/` via `openapi-typescript-codegen` (models, enums, and `*Service` classes) and `client/src/routes/rules/triggerFormConfig.generated.ts` from `server/lib/trigger_field_config.py`. App code imports from `@assembled/api-client`, e.g. `RulesService`, `RuleRead`, `TriggerType`. Demo agents/queues are served at runtime by `GET /demo/roster` (from `lib/demo_roster.py`), not codegen’d into the client. Human trigger labels stay in `triggerFormConfig.ts`.
 
 ### 3. Seed demo rules (once per empty database)
 
@@ -89,7 +90,7 @@ cd server
 uv run seed-rules
 ```
 
-Inserts the five built-in demo rules when the rules table is empty. Safe to re-run (no-op if rules already exist). Each seed rule’s `created_by` matches its demo persona (`a_19`, `a_42`, or `lead_billing`) so those usernames see the matching rules in the UI.
+Inserts the six built-in demo rules when the rules table is empty. Safe to re-run (no-op if rules already exist). Each seed rule’s `created_by` matches its demo persona (`a_19`, `a_42`, or `lead_billing`) so those usernames see the matching rules in the UI.
 
 ### 4. Start the API
 
@@ -143,9 +144,12 @@ Client (`bun run lint` = Prettier check + ESLint + `tsc --noEmit`):
 ```bash
 cd client
 bun run lint
+bun test
 bun run format   # Prettier --write
 bun run typecheck
 ```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs server lint/pytest, client lint/tests, and fails if `openapi.json` or `triggerFormConfig.generated.ts` are stale.
 
 ### 9. Regenerate sample events (optional)
 
@@ -154,6 +158,18 @@ cd server && uv run python scripts/generate_events.py
 ```
 
 Note: the JSONL harness under `server/tests/event_streamer` is for demos and tests only; production-shaped ingest is `POST /events`.
+
+## Demo walkthrough (~2–3 min)
+
+With API + UI running and rules seeded:
+
+1. In the UI header, set username to `lead_billing`. Open **Rules** — you should see Billing SLA, backlog ≥ 20, forecast ≥ 130% of recent volume, and long-call rules. Open **Notifications** (empty until replay).
+2. In another terminal: `cd server && uv run python -m tests.event_streamer.jsonl_replayer --events events.jsonl --mode instant` (clears prior inbox/dedup, then replays the sample morning).
+3. Watch the API terminal for `[NOTIFY]` lines, then refresh/poll **Notifications** as `lead_billing` — expect SLA breach, backlog, forecast-above-recent, and long-call firings.
+4. Switch username to `a_19` — inbox shows the adherence > 10m self-alert. Switch to `a_42` — long-call self-alert.
+5. Optional: create a rule as either persona (no channel/enabled pickers; delivery is always console + inbox; toggle enable/disable from the rules list).
+
+Story beats come from seed rule ids: `rule_lead_sla_billing`, `rule_lead_tickets_billing`, `rule_lead_forecast_over_volume`, `rule_lead_long_call`, `rule_agent_adherence`, `rule_agent_long_call`.
 
 ## Scripts reference
 
@@ -164,12 +180,14 @@ Note: the JSONL harness under `server/tests/event_streamer` is for demos and tes
 | `server/` | `uv run stream-events` | Replay `events.jsonl` over ~10 wall-clock minutes |
 | `server/` | `uv run lint` | Ruff check, Ruff format check, mypy |
 | `server/` | `uv run pytest` | Server tests |
-| `server/` | `uv run python scripts/export_openapi.py` | OpenAPI JSON + generated demo roster for the client |
+| `server/` | `uv run python scripts/export_openapi.py` | OpenAPI JSON for the client |
+| `server/` | `uv run export-trigger-config` | Trigger form field flags → `triggerFormConfig.generated.ts` |
 | `server/` | `uv run python scripts/generate_events.py` | Regenerate sample JSONL feeds |
 | `client/` | `bun run dev` | Vite UI (usually `:5173`) |
 | `client/` | `bun run build` | Typecheck + production build |
-| `client/` | `bun run generate:api` | Regenerate OpenAPI TypeScript client |
+| `client/` | `bun run generate:api` | Regenerate `src/api-client/` from OpenAPI (`openapi-typescript-codegen`) |
 | `client/` | `bun run lint` | Prettier check, ESLint, TypeScript |
+| `client/` | `bun test` | Vitest / Bun unit tests (`parseRuleForm`, etc.) |
 | `client/` | `bun run format` | Prettier write |
 | `client/` | `bun run typecheck` | `tsc --noEmit` only |
 
@@ -177,22 +195,21 @@ Note: the JSONL harness under `server/tests/event_streamer` is for demos and tes
 
 SQLite file: `server/data/assembled.db` (created on API startup). Three tables. `notifications.rule_id` and `notification_dedup.rule_id` are foreign keys to `rules.id` with `ON DELETE CASCADE` (SQLite FK pragma enabled on connect).
 
-If you already have an older DB (e.g. with `cooldown_sec` or `eval_state`), delete `server/data/assembled.db` and re-run `uv run seed-rules` (or let the API recreate an empty file on startup).
+If you already have an older DB (e.g. with `cooldown_sec`, `eval_state`, or `audience`), delete `server/data/assembled.db` and re-run `uv run seed-rules` (or let the API recreate an empty file on startup).
 
 ### `rules`
 
-Configured alert rules. `owner_id` is who **receives** the notification; `created_by` / `updated_by` are the username stub from `X-Username`. Rule list/get/update/delete are scoped to `created_by` matching the request username; ingest evaluation still loads all enabled rules.
+Configured alert rules. `owner_id` (notification recipient) is always set to the `X-Username` actor on create — same as `created_by`. Rule list/get/update/delete are scoped to `created_by`; ingest evaluation still loads all enabled rules.
 
 | Column | Type | Notes |
 |--------|------|--------|
 | `id` | TEXT PK | e.g. `rule_lead_sla_billing` |
 | `name` | TEXT | Display name |
 | `enabled` | BOOLEAN | Disabled rules are skipped |
-| `audience` | TEXT | `agent` \| `team_lead` |
-| `owner_id` | TEXT | Notification recipient |
+| `owner_id` | TEXT | Notification recipient (= creating username) |
 | `scope_agent_id` | TEXT NULL | Agent scope (optional) |
 | `scope_queue_ids_json` | TEXT NULL | JSON array of queue ids |
-| `trigger_type` | TEXT | Closed enum (SLA, tickets, adherence, state duration) |
+| `trigger_type` | TEXT | Closed enum (SLA, tickets, forecast over volume, adherence, state duration) |
 | `threshold` | INTEGER NULL | Seconds or ticket count, by trigger |
 | `target_state` | TEXT NULL | e.g. `on_call` for long-call rules |
 | `severity` | TEXT | `info` \| `warning` \| `critical` |
@@ -231,4 +248,8 @@ ORM models live under `server/lib/models/`.
 
 ## AI tools used
 
-AI assisted prototyping and parallel planning; final scope, cuts, and verification were human-owned. Tooling included Cursor.
+Tooling: **Cursor** (agent + planning).
+
+- **Used for:** scaffolding FastAPI/React structure, OpenAPI client wiring, draft trigger evaluators and form field config, parallel codebase exploration while refining scope.
+- **Not delegated:** product cuts (agents + leads only; closed triggers; no cooldown DSL), noise-control semantics (become-true + adherence window), and what stayed out of MVP.
+- **Verified by:** `uv run pytest` (triggers, noise control, rules CRUD, JSONL replay), `bun run lint` / typecheck, `bun test` (`parseRuleForm`), CI (`.github/workflows/ci.yml`), and manual seed → instant replay → inbox/console story beats.

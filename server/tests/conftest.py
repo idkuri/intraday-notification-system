@@ -4,12 +4,8 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from gateway.container import AppContainer
-from gateway.deps import set_container
-from gateway.main import app
 from lib.db.session import DatabaseSessionManager
 from lib.schemas.enums import (
-    Audience,
     ChannelType,
     Severity,
     TriggerType,
@@ -17,13 +13,16 @@ from lib.schemas.enums import (
 from lib.schemas.rules import RuleRead, RuleScope
 from scripts.seed_rules import seed_rules_if_empty
 
+from gateway.container import AppContainer
+from gateway.deps import set_container
+from gateway.main import app
+
 
 def make_rule_read(**overrides: object) -> RuleRead:
     defaults: dict[str, object] = {
         "id": "rule_test",
         "name": "Test rule",
         "enabled": True,
-        "audience": Audience.TEAM_LEAD,
         "owner_id": "owner_1",
         "scope": RuleScope(queue_ids=["billing"]),
         "trigger_type": TriggerType.QUEUE_SLA_BREACHED,

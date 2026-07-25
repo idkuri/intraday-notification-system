@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: uv sync
+      - name: Lint
+        run: uv run lint
+      - name: Test
+        run: uv run pytest
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Test
+        run: bun test
+
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - name: Install server dependencies
+        working-directory: server
+        run: uv sync
+      - name: Export OpenAPI and trigger field config
+        working-directory: server
+        run: |
+          uv run python scripts/export_openapi.py
+          uv run export-trigger-config
+      - name: Fail if generated artifacts are stale
+        run: |
+          git diff --exit-code -- \
+            client/src/generated/openapi.json \
+            client/src/routes/rules/triggerFormConfig.generated.ts

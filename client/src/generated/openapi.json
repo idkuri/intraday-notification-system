@@ -317,17 +317,45 @@
         ],
         "summary": "List Notifications",
         "operationId": "list_notifications_notifications_get",
+        "parameters": [
+          {
+            "name": "X-Username",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Username"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
+                  "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/NotificationRead"
                   },
-                  "type": "array",
                   "title": "Response List Notifications Notifications Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -338,11 +366,39 @@
         "tags": [
           "notifications"
         ],
-        "summary": "Clear All",
-        "operationId": "clear_all_notifications_delete",
+        "summary": "Clear Inbox",
+        "operationId": "clear_inbox_notifications_delete",
+        "parameters": [
+          {
+            "name": "X-Username",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Username"
+            }
+          }
+        ],
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -407,6 +463,28 @@
           }
         }
       }
+    },
+    "/demo/roster": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "Get Demo Roster",
+        "description": "Return the static demo agents and queues for UI pickers.",
+        "operationId": "get_demo_roster_demo_roster_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoRosterResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -432,10 +510,17 @@
             "title": "Agent Id"
           },
           "queue_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Queue Ids"
           },
           "scheduled_state": {
@@ -470,7 +555,6 @@
           "ts",
           "type",
           "agent_id",
-          "queue_ids",
           "scheduled_state",
           "actual_state",
           "in_violation"
@@ -510,18 +594,39 @@
             "title": "Agent Id"
           },
           "queue_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Queue Ids"
           },
           "previous_state": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Previous State"
           },
           "previous_state_duration_sec": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Previous State Duration Sec"
           },
           "new_state": {
@@ -536,21 +641,9 @@
           "ts",
           "type",
           "agent_id",
-          "queue_ids",
-          "previous_state",
-          "previous_state_duration_sec",
           "new_state"
         ],
         "title": "AgentStateChangeEvent"
-      },
-      "Audience": {
-        "type": "string",
-        "enum": [
-          "agent",
-          "team_lead"
-        ],
-        "title": "Audience",
-        "description": "Who a rule is intended for in the product UI (not used for routing)."
       },
       "ChannelType": {
         "type": "string",
@@ -560,6 +653,61 @@
         ],
         "title": "ChannelType",
         "description": "Delivery channels for a notification."
+      },
+      "DemoAgentRead": {
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "agent_name": {
+            "type": "string",
+            "title": "Agent Name"
+          },
+          "queue_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queue Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "agent_id",
+          "agent_name",
+          "queue_ids"
+        ],
+        "title": "DemoAgentRead",
+        "description": "Agent in the demo workforce roster."
+      },
+      "DemoRosterResponse": {
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/DemoAgentRead"
+            },
+            "type": "array",
+            "title": "Agents"
+          },
+          "queues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queues",
+            "description": "Queue IDs present in the demo feed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "agents",
+          "queues"
+        ],
+        "title": "DemoRosterResponse",
+        "description": "Agents and queues used by the sample feed and rule UI pickers."
       },
       "HTTPValidationError": {
         "properties": {
@@ -723,7 +871,14 @@
             "title": "Volume Last 15M"
           },
           "volume_forecast_next_15m": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Volume Forecast Next 15M"
           }
         },
@@ -739,8 +894,7 @@
           "sla_target_sec",
           "agents_available",
           "agents_on_call",
-          "volume_last_15m",
-          "volume_forecast_next_15m"
+          "volume_last_15m"
         ],
         "title": "QueueSnapshotEvent"
       },
@@ -754,9 +908,6 @@
             "type": "boolean",
             "title": "Enabled",
             "default": true
-          },
-          "audience": {
-            "$ref": "#/components/schemas/Audience"
           },
           "owner_id": {
             "type": "string",
@@ -805,7 +956,6 @@
         "type": "object",
         "required": [
           "name",
-          "audience",
           "owner_id",
           "scope",
           "trigger_type"
@@ -822,9 +972,6 @@
             "type": "boolean",
             "title": "Enabled",
             "default": true
-          },
-          "audience": {
-            "$ref": "#/components/schemas/Audience"
           },
           "owner_id": {
             "type": "string",
@@ -895,7 +1042,6 @@
         "type": "object",
         "required": [
           "name",
-          "audience",
           "owner_id",
           "scope",
           "trigger_type",
@@ -962,16 +1108,6 @@
               }
             ],
             "title": "Enabled"
-          },
-          "audience": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Audience"
-              },
-              {
-                "type": "null"
-              }
-            ]
           },
           "owner_id": {
             "anyOf": [
@@ -1070,6 +1206,7 @@
           "adherence_violation_duration",
           "queue_sla_breached",
           "queue_tickets_waiting",
+          "queue_forecast_over_volume",
           "agent_state_duration"
         ],
         "title": "TriggerType",

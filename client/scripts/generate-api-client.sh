@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-bunx openapi-typescript src/lib/api-client/openapi.json -o src/lib/api-client/schema.ts
-echo "Generated src/lib/api-client/schema.ts"
+rm -rf src/api-client
+bunx openapi-typescript-codegen \
+	--input src/generated/openapi.json \
+	--output src/api-client \
+	--client fetch \
+	--useOptions \
+	--indent 2
+echo "Generated src/api-client (openapi-typescript-codegen)"

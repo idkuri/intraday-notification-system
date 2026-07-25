@@ -34,15 +34,23 @@ class NotificationService:
         self._session.flush()
         return notification.to_schema()
 
-    def list_notifications(self) -> list[NotificationRead]:
-        """Return all notifications, newest first."""
+    def list_notifications(self, recipient_id: str) -> list[NotificationRead]:
+        """Return notifications for ``recipient_id``, newest first."""
         notifications = self._session.scalars(
-            select(NotificationModel).order_by(NotificationModel.ts.desc())
+            select(NotificationModel)
+            .where(NotificationModel.recipient_id == recipient_id)
+            .order_by(NotificationModel.ts.desc())
         ).all()
         return [notification.to_schema() for notification in notifications]
 
+    def clear_for_recipient(self, recipient_id: str) -> None:
+        """Delete persisted notifications for ``recipient_id`` only."""
+        self._session.execute(
+            delete(NotificationModel).where(NotificationModel.recipient_id == recipient_id)
+        )
+
     def clear_all(self) -> None:
-        """Delete every persisted notification."""
+        """Delete every persisted notification (demo reset / ingest wipe)."""
         self._session.execute(delete(NotificationModel))
 
     def clear_notification_dedup(self) -> None:

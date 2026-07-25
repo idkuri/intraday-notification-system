@@ -9,19 +9,13 @@ class EventType(str, Enum):
     ADHERENCE_CHECK = "adherence_check"
 
 
-class Audience(str, Enum):
-    """Who a rule is intended for in the product UI (not used for routing)."""
-
-    AGENT = "agent"
-    TEAM_LEAD = "team_lead"
-
-
 class TriggerType(str, Enum):
     """Closed set of rule trigger kinds the evaluator can match."""
 
     ADHERENCE_VIOLATION_DURATION = "adherence_violation_duration"
     QUEUE_SLA_BREACHED = "queue_sla_breached"
     QUEUE_TICKETS_WAITING = "queue_tickets_waiting"
+    QUEUE_FORECAST_OVER_VOLUME = "queue_forecast_over_volume"
     AGENT_STATE_DURATION = "agent_state_duration"
 
 

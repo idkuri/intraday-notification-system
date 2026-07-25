@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { listRules, type RuleRead } from '@/lib/api'
+import { RulesService, type RuleRead } from '@/api-client'
+import { usernameHeader } from '@/lib/configureApiClient'
 import { getErrorMessage } from '@/lib/utils/errors'
 import { useUsernameStore } from '@/stores/usernameStore'
 
 export function useRules() {
 	const username = useUsernameStore(state => state.username)
+	const authEpoch = useUsernameStore(state => state.authEpoch)
 	const [rules, setRules] = useState<RuleRead[]>([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -25,7 +27,7 @@ export function useRules() {
 
 		setLoading(true)
 		try {
-			const data = await listRules()
+			const data = await RulesService.listRulesRulesGet(usernameHeader())
 			if (requestId !== requestIdRef.current) {
 				return
 			}
@@ -45,7 +47,8 @@ export function useRules() {
 
 	useEffect(() => {
 		void refetch()
-	}, [refetch])
+		// authEpoch: re-run on Login even when the username string is unchanged.
+	}, [refetch, authEpoch])
 
 	return {
 		rules,

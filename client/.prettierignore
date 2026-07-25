@@ -1,4 +1,6 @@
 dist
 node_modules
-src/lib/api-client
-src/lib/generated
+src/generated
+
+src/api-client/
+src/routes/rules/triggerFormConfig.generated.ts
