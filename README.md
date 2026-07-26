@@ -28,15 +28,11 @@ flowchart LR
   end
 
   subgraph Services["server/services"]
+    direction TB
     Rules["rules/<br/>RuleService"]
     Ingest["ingest/<br/>IngestService"]
+    Engine["evaluator/<br/>RuleEngine"]
     Notify["notifications/<br/>NotificationService"]
-
-    subgraph Evaluator["evaluator/"]
-      Engine["RuleEngine"]
-      Index["RuleIndex"]
-      Triggers["triggers/"]
-    end
   end
 
   subgraph Data["SQLite"]
@@ -44,26 +40,23 @@ flowchart LR
   end
 
   subgraph Harness["demo harness"]
-    JSONL["events.jsonl"]
-    Replayer["JsonlReplayer"]
+    direction LR
+    JSONL["events.jsonl"] --> Replayer["JsonlReplayer"]
   end
 
   UI -->|"CRUD /rules<br/>poll /notifications"| API
-  API --> Rules
+  API -->|"CRUD"| Rules
   API -->|"POST /events"| Ingest
-  API --> Notify
+  API -->|"list notifications"| Notify
 
-  Ingest --> Rules
-  Ingest --> Engine
-  Ingest --> Notify
+  Ingest -->|"list_enabled_rules"| Rules
+  Ingest -->|"evaluate_event"| Engine
+  Ingest -->|"record_and_deliver"| Notify
 
-  Engine --> Index
-  Engine --> Triggers
+  Rules -->|"write rules"| DB
   Engine -->|"notification_dedup"| DB
-  Rules --> DB
-  Notify --> DB
+  Notify -->|"write notifications"| DB
 
-  JSONL --> Replayer
   Replayer -->|"in-process ingest"| Ingest
 ```
 
@@ -73,7 +66,7 @@ Rules are configured over HTTP; events enter via `POST /events` or the JSONL har
 
 ### Prerequisites
 
-Python 3.12 (pinned in `server/.python-version` for `uv sync`), [uv](https://docs.astral.sh/uv/), [Bun](https://bun.sh/)
+Python 3.12 (pinned in `server/.python-version` for local `uv sync`; CI uses 3.11, `requires-python >=3.11`), [uv](https://docs.astral.sh/uv/), [Bun](https://bun.sh/)
 
 ### 1. Install dependencies
 
@@ -94,7 +87,7 @@ cd ../client
 bun run generate:api
 ```
 
-Writes `client/src/api-client/` via `openapi-typescript-codegen` (models, enums, and `*Service` classes) and `client/src/routes/rules/triggerFormConfig.generated.ts` from `server/lib/trigger_field_config.py`. App code imports from `@assembled/api-client`, e.g. `RulesService`, `RuleRead`, `TriggerType`. Demo agents/queues are served at runtime by `GET /demo/roster` (from `lib/demo_roster.py`), not codegen’d into the client. Human trigger labels stay in `triggerFormConfig.ts`.
+Writes `client/src/api-client/` via `openapi-typescript-codegen` (models, enums, and `*Service` classes) and `client/src/routes/rules/triggerFormConfig.generated.ts` from `server/lib/trigger_field_config.py`. App code imports from `@/api-client`, e.g. `RulesService`, `RuleRead`, `TriggerType`. Demo agents/queues are served at runtime by `GET /demo/roster` (from `lib/demo_roster.py`), not codegen’d into the client. Human trigger labels stay in `triggerFormConfig.ts`.
 
 ### 3. Seed demo rules (once per empty database)
 
@@ -123,7 +116,7 @@ bun run dev
 ```
 
 - UI typically http://127.0.0.1:5173
-- `VITE_API_BASE_URL=http://127.0.0.1:8000`
+- API base defaults to `http://127.0.0.1:8000` (override with `VITE_API_BASE_URL`)
 - Enter a username in the header before creating/editing rules
 
 ### 6. Replay the sample morning (instant)
@@ -202,7 +195,7 @@ Story beats come from seed rule ids: `rule_lead_sla_billing`, `rule_lead_tickets
 | `client/` | `bun run build` | Typecheck + production build |
 | `client/` | `bun run generate:api` | Regenerate `src/api-client/` from OpenAPI (`openapi-typescript-codegen`) |
 | `client/` | `bun run lint` | Prettier check, ESLint, TypeScript |
-| `client/` | `bun test` | Vitest / Bun unit tests (`parseRuleForm`, etc.) |
+| `client/` | `bun test` | Bun unit tests (`parseRuleForm`, etc.; `bun run test` runs Vitest) |
 | `client/` | `bun run format` | Prettier write |
 | `client/` | `bun run typecheck` | `tsc --noEmit` only |
 
@@ -279,7 +272,7 @@ Tooling: **Cursor** (agent + planning).
 **Rejected / corrected AI output**
 - Flat / weird layout (`app/`, `packages/shared`, `gateway/application`). Forced routers + schemas + ORM + `server/`/`client/` + `lib/`.
 - Jinja2 HTML templates. Switched to React and OpenAPI-generated TS client.
-- TanStack Query early on. Parked it; used zustand + simple polling for the demo.
+- TanStack Query early on. Parked it; used React state hooks, zustand for username, and 3s polling for the notifications inbox.
 - JSONL replay as a product "replay service". Moved under `tests/` as a harness only.
 - Seed-as-a-service. Made it a script so cold DB stays demo-ready without fake service weight.
 - Whole cooldown / gate naming zoo (`EdgeCooldownGate`, `RisingEdgeGate`, `GateLatch`, `EvalStateStore`). Dropped configurable cooldown; folded become-true + adherence window into `RuleEngine` + `notification_dedup`.
@@ -292,7 +285,7 @@ Tooling: **Cursor** (agent + planning).
 - Out of MVP on purpose: Kafka/Redis/websockets, real auth, rule DSL, customer-facing replayer.
 
 **How I verified**
-- 34 pytest cases (triggers, noise control, rules CRUD, JSONL replay), plus mypy + ruff.
+- 45 pytest cases (triggers, noise control, rules CRUD, JSONL replay), plus mypy + ruff.
 - Replayed `events.jsonl` through ingest and checked `[NOTIFY]` / inbox against the rising-edge story beats.
 - CI lint/test + OpenAPI / form-config sync checks once those landed.
 

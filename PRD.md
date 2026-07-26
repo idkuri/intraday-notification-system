@@ -60,6 +60,7 @@ Contact centers need timely intraday alerts when queues slip, agents go out of a
 
 ## What I'd do with more time
 
+- Conduct UAT with end users (agents and team leads) and have QA thoroughly test the product paths (rule CRUD, replay/stream story beats, inbox scoping).
 - Move to Postgres. Measure ingest under load before redesigning the stack (e.g. Go workers, Kafka) on a guess.
 - Split ingest/eval from the CRUD API if write contention shows up (still Python first).
 - Real Slack/email (out of scope for MVP). Add adapters behind `NotificationChannel` without changing evaluate. Delivery follows the outbox path above.
