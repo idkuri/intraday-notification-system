@@ -3,11 +3,12 @@ from __future__ import annotations
 from typing import Optional
 
 from lib.exceptions import DomainValidationError, NotFoundError
+from lib.models.notification_dedup import NotificationDedupModel
 from lib.models.rule import RuleModel
 from lib.schemas.enums import TriggerType
 from lib.schemas.rules import RuleCreate, RuleRead, RuleScope, RuleUpdate
 from lib.trigger_field_config import TRIGGER_FIELD_CONFIG
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 
@@ -154,6 +155,10 @@ class RuleService:
         _validate_rule_fields(merged)
 
         rule.apply_update(data, actor=username)
+        # Threshold/scope edits must not keep stale become-true / window memory.
+        self._session.execute(
+            delete(NotificationDedupModel).where(NotificationDedupModel.rule_id == rule_id)
+        )
         self._session.flush()
         return rule.to_schema()
 

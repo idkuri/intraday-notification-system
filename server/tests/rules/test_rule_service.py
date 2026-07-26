@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import pytest
 from lib.exceptions import DomainValidationError, NotFoundError
+from lib.models.notification_dedup import NotificationDedupModel
 from lib.schemas.enums import AgentState, ChannelType, Severity, TriggerType
+from lib.schemas.notification_dedup import NotificationDedupCreate
 from lib.schemas.rules import RuleCreate, RuleScope, RuleUpdate
 from scripts.seed_rules import seed_rules_if_empty
+from sqlalchemy import select
 
 from rules.rule_service import RuleService
 
@@ -56,6 +59,37 @@ class TestRuleService:
         assert service.get_rule(created.id, actor="tester") is None
         with pytest.raises(NotFoundError):
             service.require_rule(created.id, actor="tester")
+
+    def test_update_rule_clears_dedup_rows(self, db_session) -> None:
+        service = RuleService(db_session)
+        created = service.create_rule(
+            RuleCreate(
+                name="Billing backlog",
+                owner_id="lead_billing",
+                scope=RuleScope(queue_ids=["billing"]),
+                trigger_type=TriggerType.QUEUE_TICKETS_WAITING,
+                threshold=20,
+            ),
+            actor="tester",
+        )
+        db_session.add(
+            NotificationDedupModel.from_create(
+                NotificationDedupCreate(
+                    rule_id=created.id,
+                    entity_key="queue:billing",
+                    last_condition_true=True,
+                )
+            )
+        )
+        db_session.flush()
+
+        service.update_rule(created.id, RuleUpdate(threshold=15), actor="tester")
+        db_session.flush()
+
+        remaining = db_session.scalars(
+            select(NotificationDedupModel).where(NotificationDedupModel.rule_id == created.id)
+        ).all()
+        assert remaining == []
 
     def test_list_rules_scoped_to_actor(self, db_session) -> None:
         service = RuleService(db_session)

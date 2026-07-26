@@ -41,7 +41,7 @@ Contact-center ops need timely intraday alerts when queues slip, agents go out o
 
 - **Scopes** — Agent-oriented rules typically set `agent_id`; team-lead rules set `queue_ids`. Notification recipient is the logged-in user (`owner_id` = `X-Username`).
 - **Noise control** — For snapshot-style triggers, notify when the condition becomes true, not on every later poll while it stays true. Adherence violations also dedupe within a violation window. Agent state-duration rules fire on transition events (already discrete). Configurable per-rule cooldown is an explicit non-goal for this MVP.
-- **Dedup memory** — Prior condition/window lives in `notification_dedup`, owned by `RuleEngine` (not a separate service and not delivery).
+- **Dedup memory** — Prior condition/window lives in `notification_dedup`, owned by `RuleEngine` (not a separate service and not delivery). Editing a rule clears that rule’s dedup rows so a threshold/scope change can fire again on the next legitimate match.
 - **Closed triggers** — Five typed evaluators instead of an expression language keeps the MVP reviewable, testable, and UI-friendly without building a DSL parser.
 - **Username stub** — The UI sends `X-Username` on rule and notification endpoints. It stamps `created_by` / `updated_by` / `owner_id` (recipient), scopes rule CRUD to the creating user, and scopes the inbox to that same recipient. Event evaluation still loads all enabled rules. Login commits the header value.
 - **Delivery stub** — Notifications persist to SQLite and print to console. External channels plug in behind the same delivery port later.
