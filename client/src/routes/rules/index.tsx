@@ -30,6 +30,7 @@ import {
 	RuleCreateForm,
 	ruleFormSubmitLabel,
 } from './components/RuleCreateForm'
+import { formatThresholdLabel } from './components/parseRuleForm'
 
 function scopeLabel(rule: RuleRead): string {
 	const parts: string[] = []
@@ -40,7 +41,7 @@ function scopeLabel(rule: RuleRead): string {
 		parts.push(`queues: ${rule.scope.queue_ids.join(', ')}`)
 	}
 	if (rule.threshold != null) {
-		parts.push(`threshold: ${rule.threshold}`)
+		parts.push(formatThresholdLabel(rule.trigger_type, rule.threshold))
 	}
 	if (rule.target_state) {
 		parts.push(`state: ${rule.target_state}`)

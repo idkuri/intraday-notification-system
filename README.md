@@ -96,7 +96,7 @@ cd server
 uv run seed-rules
 ```
 
-Inserts the six built-in demo rules when the rules table is empty. Safe to re-run (no-op if rules already exist). Each seed rule’s `created_by` matches its demo persona (`a_19`, `a_42`, or `lead_billing`) so those usernames see the matching rules in the UI.
+Inserts the seven built-in demo rules when the rules table is empty. Safe to re-run (no-op if rules already exist). Each seed rule’s `created_by` matches its demo persona (`a_19`, `a_42`, or `lead_billing`) so those usernames see the matching rules in the UI.
 
 ### 4. Start the API
 
@@ -171,13 +171,13 @@ Note: the JSONL harness under `server/tests/event_streamer` is for demos and tes
 
 With API + UI running and rules seeded:
 
-1. In the UI header, set username to `lead_billing`. Open **Rules** — you should see Billing SLA, backlog ≥ 20, forecast ≥ 130% of recent volume, and long-call rules. Open **Notifications** (empty until replay).
+1. In the UI header, set username to `lead_billing`. Open **Rules** — you should see Billing SLA, backlog ≥ 20, forecast ≥ 130% of recent volume, team adherence, and long-call rules. Open **Notifications** (empty until replay).
 2. In another terminal: `cd server && uv run python -m tests.event_streamer.jsonl_replayer --events events.jsonl --mode instant` (clears prior inbox/dedup, then replays the sample morning).
-3. Watch the API terminal for `[NOTIFY]` lines, then refresh/poll **Notifications** as `lead_billing` — expect SLA breach, backlog, forecast-above-recent, and long-call firings.
+3. Watch the API terminal for `[NOTIFY]` lines, then refresh/poll **Notifications** as `lead_billing` — expect SLA breach, backlog, forecast-above-recent, team adherence, and long-call firings.
 4. Switch username to `a_19` — inbox shows the adherence > 10m self-alert. Switch to `a_42` — long-call self-alert.
 5. Optional: create a rule as either persona (no channel/enabled pickers; delivery is always console + inbox; toggle enable/disable from the rules list).
 
-Story beats come from seed rule ids: `rule_lead_sla_billing`, `rule_lead_tickets_billing`, `rule_lead_forecast_over_volume`, `rule_lead_long_call`, `rule_agent_adherence`, `rule_agent_long_call`.
+Story beats come from seed rule ids: `rule_lead_sla_billing`, `rule_lead_tickets_billing`, `rule_lead_forecast_over_volume`, `rule_lead_adherence`, `rule_lead_long_call`, `rule_agent_adherence`, `rule_agent_long_call`.
 
 ## Scripts reference
 

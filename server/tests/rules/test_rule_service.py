@@ -176,11 +176,11 @@ class TestRuleService:
                 RuleCreate(
                     name="Bad adherence rule",
                     owner_id="a_1",
-                    scope=RuleScope(agent_id=""),
+                    scope=RuleScope(),
                     trigger_type=TriggerType.ADHERENCE_VIOLATION_DURATION,
                     threshold=600,
                 ),
-                "scope.agent_id is required",
+                "scope.agent_id and/or scope.queue_ids is required",
             ),
             (
                 RuleCreate(
@@ -226,19 +226,37 @@ class TestRuleService:
         with pytest.raises(DomainValidationError, match="actor must be non-empty"):
             service.create_rule(payload, actor="  ")
 
+    def test_create_adherence_rule_with_queues_only(self, db_session) -> None:
+        service = RuleService(db_session)
+        created = service.create_rule(
+            RuleCreate(
+                name="Team adherence > 10m",
+                owner_id="lead_billing",
+                scope=RuleScope(queue_ids=["billing", "tier_2"]),
+                trigger_type=TriggerType.ADHERENCE_VIOLATION_DURATION,
+                threshold=600,
+            ),
+            actor="tester",
+        )
+
+        assert created.scope.agent_id is None
+        assert created.scope.queue_ids == ["billing", "tier_2"]
+        assert created.trigger_type is TriggerType.ADHERENCE_VIOLATION_DURATION
+
 
 class TestSeedRulesScript:
-    def test_seed_rules_if_empty_creates_six_rules(self, db_session) -> None:
+    def test_seed_rules_if_empty_creates_seven_rules(self, db_session) -> None:
         inserted = seed_rules_if_empty(db_session)
         db_session.flush()
 
         service = RuleService(db_session)
         all_enabled = service.list_enabled_rules()
 
-        assert inserted == 6
-        assert len(all_enabled) == 6
+        assert inserted == 7
+        assert len(all_enabled) == 7
         assert {rule.id for rule in all_enabled} == {
             "rule_agent_adherence",
+            "rule_lead_adherence",
             "rule_lead_sla_billing",
             "rule_lead_tickets_billing",
             "rule_lead_forecast_over_volume",
@@ -256,6 +274,7 @@ class TestSeedRulesScript:
         a42_rules = service.list_rules(actor="a_42")
 
         assert {rule.id for rule in lead_rules} == {
+            "rule_lead_adherence",
             "rule_lead_sla_billing",
             "rule_lead_tickets_billing",
             "rule_lead_forecast_over_volume",
@@ -266,8 +285,8 @@ class TestSeedRulesScript:
         assert service.list_rules(actor="system") == []
 
     def test_seed_rules_if_empty_is_idempotent(self, db_session) -> None:
-        assert seed_rules_if_empty(db_session) == 6
+        assert seed_rules_if_empty(db_session) == 7
         assert seed_rules_if_empty(db_session) == 0
 
         service = RuleService(db_session)
-        assert len(service.list_enabled_rules()) == 6
+        assert len(service.list_enabled_rules()) == 7

@@ -11,8 +11,8 @@ Contact centers need timely intraday alerts when queues slip, agents go out of a
 ## Users
 
 - **Agent**: personal adherence and long-call self-alerts (e.g. violation > 10m, call > 45m).
-- **Team lead**: queue SLA, backlog, forecast vs recent volume, and long calls on owned queues.
-- Not optimizing for head-of-support digests in this MVP.
+- **Team lead**: queue SLA, backlog, forecast vs recent volume, team adherence on owned queues, and long calls on owned queues.
+- **Head of support**: digests / “summary unless something is on fire” are out of this MVP. What makes a summary *valuable* (what to roll up, cadence, which severity counts as “on fire”) is ambiguous and needs product discovery with customers; shipping a guessed digest would be noise. MVP focuses on actionable per-event alerts for agents and leads.
 
 ## MVP scope
 
@@ -33,13 +33,14 @@ Contact centers need timely intraday alerts when queues slip, agents go out of a
 - Production deploy, CI/CD, or infra-as-code.
 - Free-form rule language or drag-and-drop builder.
 - Building or training a volume forecasting model.
-- Head-of-support digests.
+- Head-of-support digests / rollups (deferred pending product discovery on summary content, cadence, and “on fire” thresholds — not because delivery is hard).
 - Kafka, Redis, websockets, or multi-process deploy.
 - Treating the JSONL replayer as a customer-facing product.
 
 ## Product decisions
 
-- **Scopes**: Agents usually set `agent_id`; leads set `queue_ids`. Recipient is the logged-in user (`owner_id` = `X-Username`).
+- **Scopes**: Agents usually set `agent_id`; leads set `queue_ids`. Adherence and agent state duration accept agent and/or queues (at least one). Recipient is the logged-in user (`owner_id` = `X-Username`).
+- **Head-of-support audience**: Cut digests/rollups from MVP; agents and leads get immediate, rule-scoped alerts. Revisit after discovery on what a valuable summary is.
 - **Noise control**: Notify on false→true, not every poll while still true; adherence once per violation window. No configurable cooldown in this MVP.
 - **Dedup memory**: Prior condition/window lives in `notification_dedup`, owned by `RuleEngine`. Editing a rule clears that rule's dedup rows so the next match can fire again.
 - **Closed triggers**: Five typed evaluators instead of a free-form rule language. Easier to review, test, and build UI for.
@@ -61,6 +62,7 @@ Contact centers need timely intraday alerts when queues slip, agents go out of a
 ## What I'd do with more time
 
 - Conduct UAT with end users (agents and team leads) and have QA thoroughly test the product paths (rule CRUD, replay/stream story beats, inbox scoping).
+- Product discovery with heads of support on digest shape (what to roll up, severity gates, cadence, what counts as “on fire”), then a thin summary surface if the research warrants it.
 - Move to Postgres. Measure ingest under load before redesigning the stack (e.g. Go workers, Kafka) on a guess.
 - Split ingest/eval from the CRUD API if write contention shows up (still Python first).
 - Real Slack/email (out of scope for MVP). Add adapters behind `NotificationChannel` without changing evaluate. Delivery follows the outbox path above.

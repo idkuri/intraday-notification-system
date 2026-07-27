@@ -33,6 +33,18 @@ _SEED_RULES: list[tuple[str, RuleCreate]] = [
         ),
     ),
     (
+        "rule_lead_adherence",
+        RuleCreate(
+            name="Team adherence > 10m",
+            owner_id="lead_billing",
+            scope=RuleScope(queue_ids=["billing", "tier_2", "vip"]),
+            trigger_type=TriggerType.ADHERENCE_VIOLATION_DURATION,
+            threshold=600,
+            severity=Severity.WARNING,
+            channels=[ChannelType.CONSOLE, ChannelType.INBOX],
+        ),
+    ),
+    (
         "rule_lead_sla_billing",
         RuleCreate(
             name="Billing SLA breach",

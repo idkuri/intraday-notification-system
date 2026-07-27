@@ -27,7 +27,16 @@ import {
 	TRIGGER_LABELS,
 	parseCommaSeparatedIds,
 } from '../triggerFormConfig'
-import { parseRuleForm } from './parseRuleForm'
+import {
+	DEFAULT_THRESHOLD_UNIT,
+	THRESHOLD_UNITS,
+	THRESHOLD_UNIT_LABELS,
+	isDurationThresholdTrigger,
+	parseRuleForm,
+	thresholdFormUnit,
+	thresholdFormValue,
+	type ThresholdUnit,
+} from './parseRuleForm'
 
 interface RuleFormProps {
 	disabled: boolean
@@ -45,6 +54,7 @@ function emptyFormState() {
 		agentId: '',
 		queueIdsText: '',
 		threshold: '',
+		thresholdUnit: DEFAULT_THRESHOLD_UNIT as ThresholdUnit,
 		targetState: AgentState.AVAILABLE,
 		severity: DEFAULT_SEVERITY,
 	}
@@ -56,7 +66,8 @@ function formStateFromRule(rule: RuleRead) {
 		triggerType: rule.trigger_type,
 		agentId: rule.scope.agent_id ?? '',
 		queueIdsText: rule.scope.queue_ids?.join(', ') ?? '',
-		threshold: rule.threshold != null ? String(rule.threshold) : '',
+		threshold: thresholdFormValue(rule.trigger_type, rule.threshold),
+		thresholdUnit: thresholdFormUnit(rule.trigger_type, rule.threshold),
 		targetState: rule.target_state ?? AgentState.AVAILABLE,
 		severity: rule.severity ?? DEFAULT_SEVERITY,
 	}
@@ -78,6 +89,9 @@ export function RuleCreateForm({
 	const [agentId, setAgentId] = useState('')
 	const [queueIdsText, setQueueIdsText] = useState('')
 	const [threshold, setThreshold] = useState('')
+	const [thresholdUnit, setThresholdUnit] = useState<ThresholdUnit>(
+		DEFAULT_THRESHOLD_UNIT
+	)
 	const [targetState, setTargetState] = useState<AgentState>(
 		AgentState.AVAILABLE
 	)
@@ -97,6 +111,7 @@ export function RuleCreateForm({
 		setAgentId(next.agentId)
 		setQueueIdsText(next.queueIdsText)
 		setThreshold(next.threshold)
+		setThresholdUnit(next.thresholdUnit)
 		setTargetState(next.targetState)
 		setSeverity(next.severity)
 		setFormError(null)
@@ -115,6 +130,7 @@ export function RuleCreateForm({
 			agentId,
 			queueIds: parseCommaSeparatedIds(queueIdsText),
 			thresholdText: threshold,
+			thresholdUnit,
 			targetState,
 		})
 		if ('error' in parsed) {
@@ -245,25 +261,62 @@ export function RuleCreateForm({
 						</TextField>
 					)}
 
-					{fieldConfig.showThreshold && (
-						<TextField
-							id="rule-threshold"
-							label={
-								triggerType === TriggerType.QUEUE_TICKETS_WAITING
-									? 'Threshold (tickets) *'
-									: triggerType === TriggerType.QUEUE_FORECAST_OVER_VOLUME
-										? 'Threshold (% of recent volume) *'
-										: 'Threshold (seconds) *'
-							}
-							type="number"
-							slotProps={{ htmlInput: { min: 0 } }}
-							value={threshold}
-							onChange={event => setThreshold(event.target.value)}
-							disabled={fieldsDisabled}
-							size="small"
-							fullWidth
-						/>
-					)}
+					{fieldConfig.showThreshold &&
+						(isDurationThresholdTrigger(triggerType) ? (
+							<Box
+								sx={{
+									display: 'flex',
+									gap: 1,
+									alignItems: 'flex-start',
+								}}
+							>
+								<TextField
+									id="rule-threshold"
+									label="Threshold *"
+									type="number"
+									slotProps={{ htmlInput: { min: 0 } }}
+									value={threshold}
+									onChange={event => setThreshold(event.target.value)}
+									disabled={fieldsDisabled}
+									size="small"
+									sx={{ flex: 1 }}
+								/>
+								<TextField
+									id="rule-threshold-unit"
+									label="Unit"
+									select
+									value={thresholdUnit}
+									onChange={event =>
+										setThresholdUnit(event.target.value as ThresholdUnit)
+									}
+									disabled={fieldsDisabled}
+									size="small"
+									sx={{ width: 128 }}
+								>
+									{THRESHOLD_UNITS.map(unit => (
+										<MenuItem key={unit} value={unit}>
+											{THRESHOLD_UNIT_LABELS[unit]}
+										</MenuItem>
+									))}
+								</TextField>
+							</Box>
+						) : (
+							<TextField
+								id="rule-threshold"
+								label={
+									triggerType === TriggerType.QUEUE_TICKETS_WAITING
+										? 'Threshold (tickets) *'
+										: 'Threshold (% of recent volume) *'
+								}
+								type="number"
+								slotProps={{ htmlInput: { min: 0 } }}
+								value={threshold}
+								onChange={event => setThreshold(event.target.value)}
+								disabled={fieldsDisabled}
+								size="small"
+								fullWidth
+							/>
+						))}
 
 					{fieldConfig.showTargetState && (
 						<TextField

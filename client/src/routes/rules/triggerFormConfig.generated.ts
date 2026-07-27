@@ -42,12 +42,12 @@ export const TRIGGER_FIELD_CONFIG: Record<TriggerType, TriggerFieldConfig> = {
 	},
 	adherence_violation_duration: {
 		showAgentId: true,
-		showQueueIds: false,
+		showQueueIds: true,
 		showThreshold: true,
 		showTargetState: false,
-		agentIdRequired: true,
+		agentIdRequired: false,
 		queueIdsRequired: false,
-		requireAgentOrQueues: false,
+		requireAgentOrQueues: true,
 	},
 	agent_state_duration: {
 		showAgentId: true,

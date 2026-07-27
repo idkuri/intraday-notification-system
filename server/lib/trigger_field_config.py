@@ -41,9 +41,10 @@ TRIGGER_FIELD_CONFIG: dict[TriggerType, TriggerFieldConfig] = {
     ),
     TriggerType.ADHERENCE_VIOLATION_DURATION: TriggerFieldConfig(
         show_agent_id=True,
+        show_queue_ids=True,
         show_threshold=True,
-        agent_id_required=True,
         threshold_required=True,
+        require_agent_or_queues=True,
     ),
     TriggerType.AGENT_STATE_DURATION: TriggerFieldConfig(
         show_agent_id=True,
